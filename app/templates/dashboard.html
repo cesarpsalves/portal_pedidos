@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1>Bem-vindo, {{ session['usuario_nome'] }}!</h1>
+<p>Tipo de usuário: {{ session['usuario_tipo'] }}</p>
+
+<ul>
+    <li><a href="{{ url_for('solicitacoes.nova_solicitacao') }}">Nova Solicitação de Compra</a></li>
+    <li><a href="{{ url_for('solicitacoes.lista_solicitacoes') }}">Minhas Solicitações</a></li>
+
+    {% if session['usuario_tipo'] in ["aprovador", "administrador", "gerente", "diretor"] %}
+    <li><a href="{{ url_for('aprovacoes.listar_solicitacoes') }}">Aprovar/Rejeitar Solicitações</a></li>
+    {% endif %}
+
+    {% if session['usuario_tipo'] in ["comprador", "administrador", "gerente", "diretor"] %}
+    <li><a href="{{ url_for('compras.lista_compras') }}">Solicitações Aprovadas para Compra</a></li>
+    {% endif %}
+
+    {% if session['usuario_tipo'] in ["recebedor", "administrador"] %}
+    <li><a href="{{ url_for('recebimentos.lista_recebimentos') }}">Confirmar Recebimento</a></li>
+    {% endif %}
+
+    {% if session['usuario_tipo'] in ["tributario", "financeiro", "administrador"] %}
+    <li><a href="#">Finalizar Processos</a></li> <!-- ajuste futuro -->
+    {% endif %}
+
+    <li><a href="{{ url_for('historico.historico_solicitacoes') }}">Histórico</a></li>
+    <li><a href="{{ url_for('auth.logout') }}">Sair</a></li>
+</ul>
+{% endblock %}

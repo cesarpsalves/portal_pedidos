@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Minhas Solicitações</h2>
+
+{% if solicitacoes %}
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Empresa Solicitante</th>
+            <th>Finalidade</th>
+            <th>Centro de Custo</th>
+            <th>Unidade</th>
+            <th>Tipo de Recebimento</th>
+            <th>Prazo Limite</th>
+            <th>Criado em</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in solicitacoes %}
+        <tr>
+            <td>{{ s.id }}</td>
+            <td>
+                {% if s.empresa_solicitante %}
+                {{ s.empresa_solicitante.nome }}
+                {% else %}
+                ---
+                {% endif %}
+            </td>
+            <td>{{ s.finalidade }}</td>
+            <td>{{ s.centro_custo or '---' }}</td>
+            <td>{{ s.unidade.nome if s.unidade else '---' }}</td>
+            <td>{{ s.tipo_recebimento }}</td>
+            <td>{{ s.prazo_limite.strftime('%d/%m/%Y') if s.prazo_limite else '---' }}</td>
+            <td>{{ s.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td><a href="{{ url_for('solicitacoes.ver_solicitacao', id=s.id) }}">Ver</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Você ainda não fez nenhuma solicitação.</p>
+{% endif %}
+
+<p>
+    <a href="{{ url_for('solicitacoes.nova_solicitacao') }}">Nova Solicitação</a> |
+    <a href="{{ url_for('exemplo.dashboard') }}">← Voltar ao Dashboard</a>
+</p>
+{% endblock %}

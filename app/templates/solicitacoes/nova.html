@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Nova Solicitação{% endblock %}
+
+{% block content %}
+<h2>Nova Solicitação</h2>
+
+<form method="POST" action="{{ url_for('solicitacoes.nova_solicitacao') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <!-- Empresa Solicitante -->
+    <label for="empresa_solicitante_id">Empresa Solicitante:</label>
+    <select name="empresa_solicitante_id" id="empresa_solicitante_id" required>
+        <option value="">Selecione...</option>
+        {% for emp in empresas %}
+        <option value="{{ emp.id }}">{{ emp.nome }}</option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    <!-- Finalidade (texto livre) -->
+    <label for="finalidade">Finalidade (texto livre):</label><br>
+    <input type="text" name="finalidade" id="finalidade" required>
+    <br><br>
+
+    <!-- Centro de Custo -->
+    <label for="centro_custo">Centro de Custo:</label>
+    <select name="centro_custo" id="centro_custo" required>
+        <option value="">Selecione...</option>
+        <option value="Brindes Promocionais - 2.2.04.006">Brindes Promocionais – 2.2.04.006</option>
+        <option value="Doação de Equipamentos - 2.2.04.014">Doação de Equipamentos – 2.2.04.014</option>
+        <option value="Outros">Outros (informe em Observações)</option>
+    </select>
+    <br><br>
+
+    <!-- Unidade -->
+    <label for="unidade_id">Unidade:</label>
+    <select name="unidade_id" id="unidade_id" required>
+        <option value="">Selecione...</option>
+        {% for unidade in unidades %}
+        <option value="{{ unidade.id }}">{{ unidade.nome }}</option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    <!-- Tipo de Recebimento -->
+    <label>Tipo de Recebimento:</label>
+    <input type="radio" name="recebimento" value="RETIRADA" id="opt-retirada">
+    <label for="opt-retirada">Retirada</label>
+    <input type="radio" name="recebimento" value="ENTREGA" id="opt-entrega" checked>
+    <label for="opt-entrega">Entrega</label>
+    <br><br>
+
+    <!-- Campos de Retirada (nome e CPF) -->
+    <div id="campos-retirada" style="display: none;">
+        <label for="nome_retirada">Nome de quem irá retirar:</label><br>
+        <input type="text" name="nome_retirada" id="nome_retirada" class="maiusculo"><br>
+        <label for="cpf_retirada">CPF de quem irá retirar:</label><br>
+        <input type="text" name="cpf_retirada" id="cpf_retirada"><br><br>
+    </div>
+
+    <!-- Prazo Limite de Entrega -->
+    <label for="prazo_limite">Prazo Limite de Entrega:</label><br>
+    <input type="date" name="prazo_limite" id="prazo_limite" min="{{ hoje }}" required>
+    <br>
+    <small id="dias-restantes" style="color: #555;"></small>
+    <br><br>
+
+    <!-- Itens da Solicitação -->
+    <h3>Itens da Solicitação</h3>
+    <div id="items">
+        <div class="item">
+            <input type="text" name="nome_produto" placeholder="Nome do Produto" class="maiusculo">
+            <input type="text" name="nome_tecnico" placeholder="Nome Técnico" class="maiusculo">
+            <input type="text" name="quantidade" placeholder="Qtd">
+            <select name="voltagem">
+                <option value="">Voltagem</option>
+                <option value="110V">110V</option>
+                <option value="220V">220V</option>
+            </select>
+            <input type="text" name="especificacoes" placeholder="Especificações" class="maiusculo">
+            <input type="text" name="link" placeholder="Link">
+        </div>
+    </div>
+
+    <button type="button" id="adicionarItem">+ Adicionar Item</button>
+    <br><br>
+
+    <!-- Observações -->
+    <label for="observacao">Observações (se “Centro de Custo” for “Outros”, especifique):</label><br>
+    <textarea name="observacao" id="observacao" rows="3" cols="50"></textarea>
+    <br><br>
+
+    <button type="submit">Enviar Solicitação</button>
+    <br><br>
+    <a href="{{ url_for('exemplo.dashboard') }}">← Voltar ao Dashboard</a>
+</form>
+
+<!-- Scripts externos e específicos -->
+<script src="{{ url_for('static', filename='js/form.js') }}" defer></script>
+<script src="https://unpkg.com/imask"></script>
+
+<script>
+    // Mostrar/ocultar campos de Retirada
+    document.querySelectorAll('input[name="recebimento"]').forEach(radio => {
+        radio.addEventListener("change", function () {
+            const camposRetirada = document.getElementById("campos-retirada");
+            camposRetirada.style.display = (this.value === "RETIRADA") ? "block" : "none";
+
+            // Ao mudar, desabilitar/abilitar inputs de retirada para não enviar se não for necessário
+            camposRetirada.querySelectorAll("input").forEach(inp => {
+                inp.disabled = (this.value !== "RETIRADA");
+            });
+        });
+    });
+
+    // Inicializar visibilidade correta logo no carregamento
+    window.addEventListener("DOMContentLoaded", () => {
+        const retiradaChecked = document.getElementById("opt-retirada").checked;
+        const camposRetirada = document.getElementById("campos-retirada");
+        camposRetirada.style.display = retiradaChecked ? "block" : "none";
+        camposRetirada.querySelectorAll("input").forEach(inp => {
+            inp.disabled = !retiradaChecked;
+        });
+    });
+
+    // Mascara de CPF
+    document.addEventListener("DOMContentLoaded", () => {
+        const campoCPF = document.getElementById("cpf_retirada");
+        if (window.IMask && campoCPF) {
+            IMask(campoCPF, { mask: '000.000.000-00' });
+        }
+    });
+
+    // Calcula dias restantes para o prazo
+    document.getElementById("prazo_limite").addEventListener("input", function () {
+        const escolha = this.value;
+        const spanDias = document.getElementById("dias-restantes");
+        if (!escolha) {
+            spanDias.textContent = "";
+            return;
+        }
+        const hoje = new Date("{{ hoje }}");
+        const selecionada = new Date(escolha);
+        const diffMs = selecionada - hoje;
+        const diffDias = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDias >= 0) {
+            spanDias.textContent = `Prazo em ${diffDias} dia(s).`;
+        } else {
+            spanDias.textContent = "";
+        }
+    });
+</script>
+{% endblock %}

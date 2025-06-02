@@ -1,0 +1,90 @@
+{# templates/aprovacoes/detalhes.html #}
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Detalhes da Solicitação #{{ solicitacao.id }}</h2>
+
+<ul>
+    <li><strong>Empresa:</strong> {{ solicitacao.empresa_solicitante.nome }}</li>
+    <li><strong>Unidade:</strong> {{ solicitacao.unidade.nome }}</li>
+    <li><strong>Solicitante:</strong> {{ solicitacao.usuario.nome }}</li>
+    <li><strong>Finalidade:</strong> {{ solicitacao.finalidade }}</li>
+    <li><strong>Centro de Custo:</strong> {{ solicitacao.centro_custo }}</li>
+    <li><strong>Tipo de Recebimento:</strong> {{ solicitacao.tipo_recebimento }}</li>
+    <li><strong>Status:</strong> {{ solicitacao.status }}</li>
+    {% if solicitacao.prazo_limite %}
+    <li><strong>Prazo Limite:</strong> {{ solicitacao.prazo_limite.strftime('%d/%m/%Y') }}</li>
+    {% endif %}
+    {% if solicitacao.observacao %}
+    <li><strong>Observações:</strong> {{ solicitacao.observacao }}</li>
+    {% endif %}
+</ul>
+
+<h3>Itens Solicitados</h3>
+<table border="1" cellpadding="5" cellspacing="0">
+    <thead>
+        <tr>
+            <th>Produto</th>
+            <th>Técnico</th>
+            <th>Qtd</th>
+            <th>Voltagem</th>
+            <th>Especificações</th>
+            <th>Link</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in itens %}
+        <tr>
+            <td>{{ item.nome_produto }}</td>
+            <td>{{ item.nome_tecnico }}</td>
+            <td>{{ item.quantidade }}</td>
+            <td>{{ item.voltagem }}</td>
+            <td>{{ item.especificacoes }}</td>
+            <td>
+                {% if item.link %}
+                <a href="{{ item.link }}" target="_blank">Acessar</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if anexos %}
+<h3>Anexos</h3>
+<ul>
+    {% for anexo in anexos %}
+    <li>
+        <a
+            href="{{ url_for('anexos.download_anexo', solicitacao_id=solicitacao.id, nome_arquivo=anexo.nome_arquivo) }}">
+            {{ anexo.nome_arquivo }}
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<h3>Aprovar ou Rejeitar</h3>
+<form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" name="acao" value="aprovar"
+        style="background-color: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 4px;">
+        Aprovar
+    </button>
+
+    <br><br>
+    <label>Motivo da Rejeição:</label><br>
+    <textarea name="motivo_rejeicao" rows="3" cols="60"
+        placeholder="Descreva aqui o motivo se for rejeitar..."></textarea>
+    <br>
+    <button type="submit" name="acao" value="rejeitar"
+        style="background-color: #f44336; color: white; padding: 8px 16px; border: none; border-radius: 4px;">
+        Rejeitar
+    </button>
+</form>
+
+<p style="margin-top: 20px;">
+    <a href="{{ url_for('aprovacoes.listar_solicitacoes') }}">&larr; Voltar à lista</a>
+</p>
+
+{% endblock %}

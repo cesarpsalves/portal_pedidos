@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Solicitações Pendentes para Aprovação</h2>
+
+{% if solicitacoes %}
+<table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Empresa Solicitante</th>
+            <th>Usuário</th>
+            <th>Unidade</th>
+            <th>Finalidade</th>
+            <th>Centro de Custo</th>
+            <th>Prazo Limite</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in solicitacoes %}
+        {% if s.status == 'pendente' %}
+        <tr>
+            <td>{{ s.id }}</td>
+            <td>{{ s.empresa_solicitante.nome if s.empresa_solicitante else '---' }}</td>
+            <td>{{ s.usuario.nome }}</td>
+            <td>{{ s.unidade.nome }}</td>
+            <td>{{ s.finalidade }}</td>
+            <td>{{ s.centro_custo }}</td>
+            <td>
+                {{ s.prazo_limite.strftime('%d/%m/%Y') if s.prazo_limite else '---' }}
+            </td>
+            <td>
+                <form method="POST" action="{{ url_for('aprovacoes.aprovar_solicitacao', id=s.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Aprovar</button>
+                </form>
+                <form method="POST" action="{{ url_for('aprovacoes.rejeitar_solicitacao', id=s.id) }}"
+                    style="display:inline;" onsubmit="return confirmarRejeicao(this);">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="motivo" value="">
+                    <button type="submit">Rejeitar</button>
+                </form>
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Não há solicitações pendentes.</p>
+{% endif %}
+
+<script>
+    function confirmarRejeicao(form) {
+        const motivo = prompt("Informe o motivo da rejeição:");
+        if (!motivo) {
+            return false;
+        }
+        form.querySelector('input[name="motivo"]').value = motivo;
+        return true;
+    }
+</script>
+
+<br>
+<a href="{{ url_for('exemplo.dashboard') }}">← Voltar ao painel</a>
+
+{% endblock %}

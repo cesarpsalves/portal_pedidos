@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Detalhes da Solicitação #{{ solicitacao.id }}</h2>
+<ul>
+    <li><strong>Empresa Solicitante:</strong>
+        {% if solicitacao.empresa_solicitante %}
+        {{ solicitacao.empresa_solicitante.nome }}
+        {% else %}
+        ---
+        {% endif %}
+    </li>
+    <li><strong>Finalidade:</strong> {{ solicitacao.finalidade }}</li>
+    <li><strong>Centro de Custo:</strong> {{ solicitacao.centro_custo or '---' }}</li>
+    <li><strong>Unidade:</strong> {{ solicitacao.unidade.nome if solicitacao.unidade else '---' }}</li>
+    <li><strong>Tipo de Recebimento:</strong> {{ solicitacao.tipo_recebimento }}</li>
+    <li><strong>Prazo Limite:</strong>
+        {{ solicitacao.prazo_limite.strftime('%d/%m/%Y') if solicitacao.prazo_limite else '---' }}
+    </li>
+    <li><strong>Data de Criação:</strong>
+        {{ solicitacao.criado_em.strftime('%d/%m/%Y %H:%M') }}
+    </li>
+    {% if solicitacao.tipo_recebimento == 'RETIRADA' %}
+    <li><strong>Nome de quem irá retirar:</strong> {{ solicitacao.nome_retirada }}</li>
+    <li><strong>CPF de quem irá retirar:</strong> {{ solicitacao.cpf_retirada }}</li>
+    {% endif %}
+</ul>
+
+<h3>Itens Solicitados:</h3>
+<ul>
+    {% for item in solicitacao.itens %}
+    <li>
+        {{ item.nome_produto }}
+        {% if item.quantidade %} - {{ item.quantidade }} und.{% endif %}
+        {% if item.voltagem %} - Voltagem: {{ item.voltagem }}{% endif %}
+        {% if item.especificacoes %} - Especificações: {{ item.especificacoes }}{% endif %}
+    </li>
+    {% endfor %}
+</ul>
+
+<h3>Anexos:</h3>
+{% if solicitacao.anexos %}
+<ul>
+    {% for anexo in solicitacao.anexos %}
+    <li>
+        <a href="{{ url_for('anexos.download_anexo', solicitacao_id=solicitacao.id, nome_arquivo=anexo.nome_arquivo) }}"
+            target="_blank">
+            {{ anexo.nome_arquivo }}
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>Nenhum anexo enviado.</p>
+{% endif %}
+
+<h4>Enviar Novo Anexo</h4>
+<form method="POST" action="{{ url_for('anexos.upload_anexo', solicitacao_id=solicitacao.id) }}"
+    enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="file" name="arquivo" required>
+    <button type="submit">Enviar</button>
+</form>
+
+<br>
+<a href="{{ url_for('solicitacoes.lista_solicitacoes') }}">← Voltar à Lista</a>
+{% endblock %}

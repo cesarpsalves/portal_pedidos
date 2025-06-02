@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico de Solicitações{% endblock %}
+
+{% block content %}
+<h2>Histórico de Solicitações</h2>
+
+<!-- Formulário de Filtro -->
+<form method="get" action="{{ url_for('historico.historico_solicitacoes') }}">
+    <label for="status">Status:</label>
+    <select name="status" id="status">
+        <option value="">Todos</option>
+        <option value="pendente" {% if status=='pendente' %}selected{% endif %}>Pendente</option>
+        <option value="aprovada" {% if status=='aprovada' %}selected{% endif %}>Aprovada</option>
+        <option value="rejeitada" {% if status=='rejeitada' %}selected{% endif %}>Rejeitada</option>
+        <option value="comprada" {% if status=='comprada' %}selected{% endif %}>Comprada</option>
+    </select>
+
+    <label for="data">Data (aaaa-mm-dd):</label>
+    <input type="date" name="data" id="data" value="{{ data or '' }}">
+
+    <button type="submit">Filtrar</button>
+    <a href="{{ url_for('historico.historico_solicitacoes') }}">Limpar Filtros</a>
+</form>
+
+<br>
+
+<!-- Tabela com Solicitações -->
+{% if solicitacoes %}
+<table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Finalidade</th>
+            <th>Unidade</th>
+            <th>Solicitante</th>
+            <th>Status</th>
+            <th>Data</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in solicitacoes %}
+        <tr>
+            <td>{{ s.id }}</td>
+            <td>{{ s.finalidade }}</td>
+            <td>{{ s.unidade.nome }}</td>
+            <td>{{ s.usuario.nome }}</td>
+            <td>{{ s.status.capitalize() }}</td>
+            <td>{{ s.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p><em>Nenhuma solicitação encontrada para os filtros aplicados.</em></p>
+{% endif %}
+
+<a href="{{ url_for('exemplo.dashboard') }}">← Voltar ao painel</a>
+{% endblock %}

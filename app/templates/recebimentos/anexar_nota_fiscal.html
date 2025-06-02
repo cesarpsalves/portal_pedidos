@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Anexar Nota Fiscal{% endblock %}
+
+{% block content %}
+<h2>Anexar Nota Fiscal para a Solicitação #{{ solicitacao.id }}</h2>
+
+<form action="{{ url_for('recebimentos.anexar_nota_fiscal', id=solicitacao.id) }}" method="POST"
+    enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="nota_fiscal">Selecione a Nota Fiscal:</label>
+    <input type="file" name="nota_fiscal" id="nota_fiscal" required>
+    <button type="submit">Anexar</button>
+</form>
+
+<p><a href="{{ url_for('recebimentos.lista_recebimentos') }}">← Voltar à lista de recebimentos</a></p>
+{% endblock %}

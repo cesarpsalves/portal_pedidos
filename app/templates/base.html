@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Portal de Pedidos{% endblock %}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/solicitacao.js') }}" defer></script>
+</head>
+
+<body>
+
+    <header>
+        <h1>Portal de Pedidos</h1>
+        {% if session.get("usuario_id") %}
+        <p>Bem-vindo, {{ session.get("usuario_nome") }} |
+            <a href="{{ url_for('auth.logout') }}">Sair</a>
+        </p>
+        {% endif %}
+        <hr>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <hr>
+        <small>&copy; {{ ano }} - Sistema Interno</small>
+    </footer>
+
+</body>
+
+</html>

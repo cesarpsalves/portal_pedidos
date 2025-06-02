@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Solicitações de Recebimento{% endblock %}
+
+{% block content %}
+<h2>Solicitações Pendentes de Recebimento</h2>
+
+{% if solicitacoes %}
+<table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Finalidade</th>
+            <th>Unidade</th>
+            <th>Solicitante</th>
+            <th>Data da Compra</th>
+            <th>Ação</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in solicitacoes %}
+        <tr>
+            <td>{{ s.id }}</td>
+            <td>{{ s.finalidade }}</td>
+            <td>{{ s.unidade.nome }}</td>
+            <td>{{ s.usuario.nome }}</td>
+            <td>{{ s.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>
+                <form action="{{ url_for('recebimentos.confirmar_recebimento', id=s.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Confirmar Recebimento</button>
+                </form>
+                <a href="{{ url_for('recebimentos.anexar_nota_fiscal', id=s.id) }}">Anexar Nota Fiscal</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Nenhuma solicitação aguardando recebimento.</p>
+{% endif %}
+
+<p><a href="{{ url_for('exemplo.dashboard') }}">← Voltar ao painel</a></p>
+{% endblock %}

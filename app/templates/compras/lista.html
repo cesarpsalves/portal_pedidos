@@ -1,0 +1,48 @@
+{# templates/compras/lista.html #}
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Solicitações Aprovadas para Compra</h2>
+
+{% if solicitacoes %}
+<table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Finalidade</th>
+            <th>Prazo Limite</th>
+            <th>Solicitante</th>
+            <th>Ação</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for solicitacao in solicitacoes %}
+        <tr>
+            <td>{{ solicitacao.id }}</td>
+            <td>{{ solicitacao.finalidade }}</td>
+            <td>
+                {{ solicitacao.prazo_limite.strftime('%d/%m/%Y')
+                if solicitacao.prazo_limite else 'N/A' }}
+            </td>
+            <td>
+                {{ solicitacao.usuario.nome
+                if solicitacao.usuario else 'Desconhecido' }}
+            </td>
+            <td>
+                {# Botão “Ver Mais” leva à rota /compras/detalhes/<solicitacao_id> #}
+                    <a href="{{ url_for('compras.compra_detalhes', solicitacao_id=solicitacao.id) }}">
+                        <button>Ver Mais</button>
+                    </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Não há solicitações aprovadas no momento.</p>
+{% endif %}
+
+<br>
+<a href="{{ url_for('exemplo.dashboard') }}">&larr; Voltar ao painel</a>
+
+{% endblock %}
