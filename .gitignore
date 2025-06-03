@@ -1,3 +1,21 @@
-/migrations
-/venv
-/__pycache__
+# Ambiente virtual Python
+venv/
+.env
+
+# Arquivos temporários e cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# VSCode e IDEs
+.vscode/
+.idea/
+
+# Arquivos de log
+*.log
+
+# Pastas de migração (se quiser versionar, remova essa linha)
+migrations/
+
+# Uploads locais (mantidos fora do controle de versão)
+uploads/
