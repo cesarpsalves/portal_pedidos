@@ -2,6 +2,7 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from datetime import datetime
+from sqlalchemy.orm import joinedload
 from app.utils.auth import login_required
 from app.extensions import db
 from app.models.solicitacoes import Solicitacao, ItemSolicitacao
@@ -82,12 +83,10 @@ def nova_solicitacao():
         flash("Solicitação criada com sucesso!", "success")
         return redirect(url_for("exemplo.dashboard"))
 
-    # GET: carrega dropdowns
     empresas = Empresa.query.order_by(Empresa.nome).all()
     unidades = Unidade.query.order_by(Unidade.nome).all()
-    # Para evitar escolher data passada:
     hoje = datetime.utcnow().date().strftime("%Y-%m-%d")
-    dias_max = 30  # ou qualquer lógica de sugestão
+    dias_max = 30
 
     return render_template(
         "solicitacoes/nova.html",
@@ -105,10 +104,17 @@ def lista_solicitacoes():
     tipo_usuario = session.get("usuario_tipo")
 
     if tipo_usuario == "administrador":
-        solicitacoes = Solicitacao.query.order_by(Solicitacao.criado_em.desc()).all()
+        solicitacoes = (
+            Solicitacao.query
+            .options(joinedload(Solicitacao.itens))
+            .order_by(Solicitacao.criado_em.desc())
+            .all()
+        )
     else:
         solicitacoes = (
-            Solicitacao.query.filter_by(usuario_id=usuario_id)
+            Solicitacao.query
+            .options(joinedload(Solicitacao.itens))
+            .filter_by(usuario_id=usuario_id)
             .order_by(Solicitacao.criado_em.desc())
             .all()
         )
@@ -121,18 +127,13 @@ def lista_solicitacoes():
 def ver_solicitacao(id):
     solicitacao = Solicitacao.query.get_or_404(id)
 
-    # Verifica permissão:
-    #   - se for administrador (ou perfil de aprovador), pode ver qualquer solicitação
-    #   - senão, só se for o próprio criador
     tipo_usuario = session.get("usuario_tipo")
-    if tipo_usuario != "administrador" and solicitacao.usuario_id != session.get(
-        "usuario_id"
-    ):
+    if tipo_usuario != "administrador" and solicitacao.usuario_id != session.get("usuario_id"):
         flash("Acesso negado.", "danger")
         return redirect(url_for("solicitacoes.lista_solicitacoes"))
 
     itens = ItemSolicitacao.query.filter_by(solicitacao_id=solicitacao.id).all()
-    anexos = solicitacao.anexos  # supondo que exista relacionamento com anexos
+    anexos = solicitacao.anexos
 
     return render_template(
         "solicitacoes/ver.html", solicitacao=solicitacao, itens=itens, anexos=anexos
