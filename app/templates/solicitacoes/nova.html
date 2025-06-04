@@ -1,12 +1,31 @@
+{# templates/solicitacoes/nova.html #}
 {% extends 'base.html' %}
-
 {% block title %}Nova Solicitação{% endblock %}
 
 {% block content %}
 <h2>Nova Solicitação</h2>
 
+<!-- Botão para ir à tela de Importação via Planilha -->
+<p>
+    <a href="{{ url_for('solicitacoes.importar_solicitacao') }}" class="botao-secundario">
+        ← Importar via Planilha
+    </a>
+</p>
+
+{# Exibe mensagens de flash (sucesso ou erro) #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<ul class="flashes">
+    {% for category, message in messages %}
+    <li class="flash-{{ category }}">{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endwith %}
+
 <form method="POST" action="{{ url_for('solicitacoes.nova_solicitacao') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <!-- Empresa Solicitante -->
     <label for="empresa_solicitante_id">Empresa Solicitante:</label>
     <select name="empresa_solicitante_id" id="empresa_solicitante_id" required>
@@ -19,15 +38,19 @@
 
     <!-- Finalidade (texto livre) -->
     <label for="finalidade">Finalidade (texto livre):</label><br>
-    <input type="text" name="finalidade" id="finalidade" required>
+    <input type="text" name="finalidade" id="finalidade" required class="maiusculo" spellcheck="true">
     <br><br>
 
     <!-- Centro de Custo -->
     <label for="centro_custo">Centro de Custo:</label>
     <select name="centro_custo" id="centro_custo" required>
         <option value="">Selecione...</option>
-        <option value="Brindes Promocionais - 2.2.04.006">Brindes Promocionais – 2.2.04.006</option>
-        <option value="Doação de Equipamentos - 2.2.04.014">Doação de Equipamentos – 2.2.04.014</option>
+        <option value="Brindes Promocionais - 2.2.04.006">
+            Brindes Promocionais – 2.2.04.006
+        </option>
+        <option value="Doação de Equipamentos - 2.2.04.014">
+            Doação de Equipamentos – 2.2.04.014
+        </option>
         <option value="Outros">Outros (informe em Observações)</option>
     </select>
     <br><br>
@@ -53,10 +76,14 @@
     <!-- Campos de Retirada (nome e CPF) -->
     <div id="campos-retirada" style="display: none;">
         <label for="nome_retirada">Nome de quem irá retirar:</label><br>
-        <input type="text" name="nome_retirada" id="nome_retirada" class="maiusculo"><br>
+        <input type="text" name="nome_retirada" id="nome_retirada" class="maiusculo" spellcheck="true"><br>
+
         <label for="cpf_retirada">CPF de quem irá retirar:</label><br>
-        <input type="text" name="cpf_retirada" id="cpf_retirada"><br><br>
+        <input type="text" name="cpf_retirada" id="cpf_retirada" maxlength="14" <!-- 000.000.000-00 -->
+        ><br>
+        <!-- Aqui o JS de form.js irá inserir <span id="erro-cpf-msg">, se necessário -->
     </div>
+    <br>
 
     <!-- Prazo Limite de Entrega -->
     <label for="prazo_limite">Prazo Limite de Entrega:</label><br>
@@ -69,25 +96,43 @@
     <h3>Itens da Solicitação</h3>
     <div id="items">
         <div class="item">
-            <input type="text" name="nome_produto" placeholder="Nome do Produto" class="maiusculo">
-            <input type="text" name="nome_tecnico" placeholder="Nome Técnico" class="maiusculo">
+            <!-- Nome do Produto com autocomplete via datalist -->
+            <input type="text" name="nome_produto" placeholder="Nome do Produto" class="maiusculo"
+                list="produtos_sugeridos" autocomplete="off" spellcheck="false">
+            <datalist id="produtos_sugeridos">
+                {% for termo in termos_produto %}
+                <option value="{{ termo }}">
+                    {% endfor %}
+            </datalist>
+
+            <!-- Nome Técnico -->
+            <input type="text" name="nome_tecnico" placeholder="Nome Técnico" class="maiusculo" spellcheck="true">
+
+            <!-- Quantidade -->
             <input type="text" name="quantidade" placeholder="Qtd">
+
+            <!-- Voltagem -->
             <select name="voltagem">
                 <option value="">Voltagem</option>
                 <option value="110V">110V</option>
                 <option value="220V">220V</option>
             </select>
-            <input type="text" name="especificacoes" placeholder="Especificações" class="maiusculo">
+
+            <!-- Especificações -->
+            <input type="text" name="especificacoes" placeholder="Especificações" class="maiusculo" spellcheck="true">
+
+            <!-- Link -->
             <input type="text" name="link" placeholder="Link">
         </div>
     </div>
-
     <button type="button" id="adicionarItem">+ Adicionar Item</button>
     <br><br>
 
     <!-- Observações -->
-    <label for="observacao">Observações (se “Centro de Custo” for “Outros”, especifique):</label><br>
-    <textarea name="observacao" id="observacao" rows="3" cols="50"></textarea>
+    <label for="observacao">
+        Observações (se “Centro de Custo” for “Outros”, especifique):
+    </label><br>
+    <textarea name="observacao" id="observacao" rows="3" cols="50" spellcheck="true"></textarea>
     <br><br>
 
     <button type="submit">Enviar Solicitação</button>
@@ -100,39 +145,8 @@
 <script src="https://unpkg.com/imask"></script>
 
 <script>
-    // Mostrar/ocultar campos de Retirada
-    document.querySelectorAll('input[name="recebimento"]').forEach(radio => {
-        radio.addEventListener("change", function () {
-            const camposRetirada = document.getElementById("campos-retirada");
-            camposRetirada.style.display = (this.value === "RETIRADA") ? "block" : "none";
-
-            // Ao mudar, desabilitar/abilitar inputs de retirada para não enviar se não for necessário
-            camposRetirada.querySelectorAll("input").forEach(inp => {
-                inp.disabled = (this.value !== "RETIRADA");
-            });
-        });
-    });
-
-    // Inicializar visibilidade correta logo no carregamento
-    window.addEventListener("DOMContentLoaded", () => {
-        const retiradaChecked = document.getElementById("opt-retirada").checked;
-        const camposRetirada = document.getElementById("campos-retirada");
-        camposRetirada.style.display = retiradaChecked ? "block" : "none";
-        camposRetirada.querySelectorAll("input").forEach(inp => {
-            inp.disabled = !retiradaChecked;
-        });
-    });
-
-    // Mascara de CPF
-    document.addEventListener("DOMContentLoaded", () => {
-        const campoCPF = document.getElementById("cpf_retirada");
-        if (window.IMask && campoCPF) {
-            IMask(campoCPF, { mask: '000.000.000-00' });
-        }
-    });
-
-    // Calcula dias restantes para o prazo
-    document.getElementById("prazo_limite").addEventListener("input", function () {
+    // Cálculo de dias restantes para o prazo (código original)
+    document.getElementById("prazo_limite")?.addEventListener("input", function () {
         const escolha = this.value;
         const spanDias = document.getElementById("dias-restantes");
         if (!escolha) {

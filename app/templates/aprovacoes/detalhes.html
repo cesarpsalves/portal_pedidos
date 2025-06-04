@@ -1,8 +1,29 @@
-{# templates/aprovacoes/detalhes.html #}
 {% extends "base.html" %}
 {% block content %}
 
 <h2>Detalhes da Solicitação #{{ solicitacao.id }}</h2>
+
+<!-- Botão de cópia para WhatsApp -->
+<button onclick="copiarWhatsApp()"
+    style="background-color: #34af23; color: white; padding: 8px 16px; border: none; border-radius: 4px;">
+    📋 Copiar para WhatsApp
+</button>
+<br><br>
+
+<!-- Texto formatado oculto -->
+<textarea id="textoWhatsapp" style="display: none;">
+*Solicitação de Compra*
+
+*Empresa:* {{ solicitacao.empresa_solicitante.nome }}
+*Unidade:* {{ solicitacao.unidade.nome }}
+*Solicitante:* {{ solicitacao.usuario.nome }}
+*Finalidade:* {{ solicitacao.finalidade }}
+*Tipo de Recebimento:* {{ solicitacao.tipo_recebimento }}
+{% if solicitacao.tipo_recebimento == 'RETIRADA' %}*Retirada por:* {{ solicitacao.nome_retirada }}{% endif %}
+
+*Itens Solicitados:*
+{% for item in itens %}- {{ item.quantidade }}x {{ item.nome_produto[:30] }}{% endfor %}
+</textarea>
 
 <ul>
     <li><strong>Empresa:</strong> {{ solicitacao.empresa_solicitante.nome }}</li>
@@ -40,11 +61,7 @@
             <td>{{ item.quantidade }}</td>
             <td>{{ item.voltagem }}</td>
             <td>{{ item.especificacoes }}</td>
-            <td>
-                {% if item.link %}
-                <a href="{{ item.link }}" target="_blank">Acessar</a>
-                {% endif %}
-            </td>
+            <td>{% if item.link %}<a href="{{ item.link }}" target="_blank">Acessar</a>{% else %}-{% endif %}</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -86,5 +103,18 @@
 <p style="margin-top: 20px;">
     <a href="{{ url_for('aprovacoes.listar_solicitacoes') }}">&larr; Voltar à lista</a>
 </p>
+
+<script>
+    function copiarWhatsApp() {
+        const texto = document.getElementById("textoWhatsapp").value;
+        const temp = document.createElement("textarea");
+        temp.value = texto;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+        alert("Texto copiado para o WhatsApp!");
+    }
+</script>
 
 {% endblock %}
