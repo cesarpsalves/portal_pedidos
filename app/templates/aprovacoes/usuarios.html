@@ -1,3 +1,4 @@
+{# templates/aprovacoes/usuarios.html #}
 {% extends 'base.html' %}
 {% block content %}
 
@@ -26,10 +27,8 @@
             <td>{{ s.usuario.nome }}</td>
             <td>{{ s.unidade.nome }}</td>
             <td>{{ s.finalidade }}</td>
-            <td>{{ s.centro_custo }}</td>
-            <td>
-                {{ s.prazo_limite.strftime('%d/%m/%Y') if s.prazo_limite else '---' }}
-            </td>
+            <td>{{ s.centro_custo or '---' }}</td>
+            <td>{{ s.prazo_limite.strftime('%d/%m/%Y') if s.prazo_limite else '---' }}</td>
             <td>
                 <form method="POST" action="{{ url_for('aprovacoes.aprovar_solicitacao', id=s.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -63,6 +62,6 @@
 </script>
 
 <br>
-<a href="{{ url_for('exemplo.dashboard') }}">← Voltar ao painel</a>
+<a href="{{ url_for('main.dashboard') }}">&larr; Voltar ao painel</a>
 
 {% endblock %}

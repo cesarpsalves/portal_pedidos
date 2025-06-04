@@ -1,3 +1,4 @@
+{# templates/solicitacoes/lista.html #}
 {% extends 'base.html' %}
 {% block content %}
 
@@ -29,17 +30,25 @@
             </td>
             <td>{{ s.finalidade }}</td>
             <td>
+                {# Monta um pequeno resumo dos primeiros 2 itens #}
                 {% set resumo = [] %}
                 {% for item in s.itens[:2] %}
-                {% set nome_resumido = item.nome_produto if item.nome_produto|length <= 18 else
-                    item.nome_produto[:18].rsplit(' ', 1)[0] ~ ' ...' %} {% set _=resumo.append(item.quantidade|string
-                    + 'x ' + nome_resumido) %} {% endfor %} {{ resumo|join(', ') }}{% if s.itens|length > 2 %}, ...{% endif %}
+                {# Se o nome do produto tiver mais de 18 caracteres, trunca antes de um espaço #}
+                {% set nome_resumido =
+                (item.nome_produto if item.nome_produto|length <= 18 else item.nome_produto[:18].rsplit(' ', 1)[0] ~ '
+                    ...') %} {# Adiciona “quantidade x nome_resumido” ao array resumo #} {% set
+                    _=resumo.append(item.quantidade|string ~ 'x ' ~ nome_resumido) %} {% endfor %} {{ resumo|join(', ') }}
+                {% if s.itens|length > 2 %}, …{% endif %}
             </td>
             <td>{{ s.unidade.nome if s.unidade else ' ---' }}</td>
             <td>{{ s.tipo_recebimento }}</td>
-            <td>{{ s.prazo_limite.strftime('%d/%m/%Y') if s.prazo_limite else '---' }}</td>
+            <td>
+                {{ s.prazo_limite.strftime('%d/%m/%Y') if s.prazo_limite else '---' }}
+            </td>
             <td>{{ s.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
-            <td><a href="{{ url_for('solicitacoes.ver_solicitacao', id=s.id) }}">Ver</a></td>
+            <td>
+                <a href="{{ url_for('solicitacoes.ver_solicitacao', id=s.id) }}">Ver</a>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
@@ -50,7 +59,7 @@
 
 <p>
     <a href="{{ url_for('solicitacoes.nova_solicitacao') }}">Nova Solicitação</a> |
-    <a href="{{ url_for('exemplo.dashboard') }}">← Voltar ao Dashboard</a>
+    <a href="{{ url_for('main.dashboard') }}">← Voltar ao Dashboard</a>
 </p>
 
 {% endblock %}

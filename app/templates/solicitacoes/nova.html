@@ -5,14 +5,14 @@
 {% block content %}
 <h2>Nova Solicitação</h2>
 
-<!-- Botão para ir à tela de Importação via Planilha -->
+<!-- 1) Botão para ir à tela de Importação via Planilha -->
 <p>
     <a href="{{ url_for('solicitacoes.importar_solicitacao') }}" class="botao-secundario">
         ← Importar via Planilha
     </a>
 </p>
 
-{# Exibe mensagens de flash (sucesso ou erro) #}
+<!-- 2) Exibe mensagens de flash (sucesso ou erro) -->
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <ul class="flashes">
@@ -23,7 +23,9 @@
 {% endif %}
 {% endwith %}
 
+<!-- 3) Formulário de Nova Solicitação -->
 <form method="POST" action="{{ url_for('solicitacoes.nova_solicitacao') }}">
+    {# Campo CSRF obrigatório #}
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <!-- Empresa Solicitante -->
@@ -76,12 +78,13 @@
     <!-- Campos de Retirada (nome e CPF) -->
     <div id="campos-retirada" style="display: none;">
         <label for="nome_retirada">Nome de quem irá retirar:</label><br>
-        <input type="text" name="nome_retirada" id="nome_retirada" class="maiusculo" spellcheck="true"><br>
+        <input type="text" name="nome_retirada" id="nome_retirada" class="maiusculo" spellcheck="true">
+        <br>
 
         <label for="cpf_retirada">CPF de quem irá retirar:</label><br>
-        <input type="text" name="cpf_retirada" id="cpf_retirada" maxlength="14" <!-- 000.000.000-00 -->
-        ><br>
-        <!-- Aqui o JS de form.js irá inserir <span id="erro-cpf-msg">, se necessário -->
+        <input type="text" name="cpf_retirada" id="cpf_retirada" maxlength="14">
+        <br>
+        <!-- O JS (IMask) inserir um <span id="erro-cpf-msg"> se necessário -->
     </div>
     <br>
 
@@ -137,15 +140,16 @@
 
     <button type="submit">Enviar Solicitação</button>
     <br><br>
-    <a href="{{ url_for('exemplo.dashboard') }}">← Voltar ao Dashboard</a>
+    {# → Aqui, substituir 'exemplo.dashboard' por 'main.dashboard' #}
+    <a href="{{ url_for('main.dashboard') }}">← Voltar ao Dashboard</a>
 </form>
 
-<!-- Scripts externos e específicos -->
+<!-- 4) Scripts externos e específicos -->
 <script src="{{ url_for('static', filename='js/form.js') }}" defer></script>
 <script src="https://unpkg.com/imask"></script>
 
 <script>
-    // Cálculo de dias restantes para o prazo (código original)
+    // 5) Cálculo de dias restantes para o prazo (código original)
     document.getElementById("prazo_limite")?.addEventListener("input", function () {
         const escolha = this.value;
         const spanDias = document.getElementById("dias-restantes");

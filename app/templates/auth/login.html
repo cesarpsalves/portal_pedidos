@@ -1,0 +1,44 @@
+{# templates/auth/login.html #}
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<h2>Entrar</h2>
+
+{# Exibe mensagens flash (erro, sucesso) #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<ul class="flashes">
+    {% for category, message in messages %}
+    <li class="flash-{{ category }}">{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endwith %}
+
+<form method="POST" action="{{ url_for('auth.login') }}">
+    {# ← Campo obrigatorio para proteger contra CSRF: #}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label for="email">E-mail:</label><br>
+    <input type="email" name="email" id="email" required><br><br>
+
+    <label for="senha">Senha:</label><br>
+    <input type="password" name="senha" id="senha" required><br><br>
+
+    <button type="submit">Entrar</button>
+</form>
+
+<p>
+    Ainda não tem conta? <a href="{{ url_for('auth.cadastro') }}">Cadastre‐se aqui</a>.
+</p>
+
+{# ← Exibe “Entrar com Google” somente se existir o endpoint google.login #}
+{% if 'google.login' in current_app.view_functions %}
+<hr>
+<p>OU</p>
+<p>
+    <a href="{{ url_for('google.login') }}">Entrar com Google</a>
+</p>
+{% endif %}
+{% endblock %}

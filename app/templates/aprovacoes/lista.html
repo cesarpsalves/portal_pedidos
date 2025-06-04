@@ -1,3 +1,4 @@
+{# templates/aprovacoes/lista.html #}
 {% extends 'base.html' %}
 {% block content %}
 
@@ -46,7 +47,7 @@
 
                 <!-- Form Aprovar -->
                 <form method="POST" action="{{ url_for('aprovacoes.aprovar_solicitacao', id=solicitacao.id) }}"
-                    style="display:inline;">
+                    style="display: inline;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit"
                         style="background-color: #4CAF50; color: white; padding: 5px 10px; border: none; border-radius: 4px;">
@@ -56,7 +57,7 @@
 
                 <!-- Form Rejeitar -->
                 <form method="POST" action="{{ url_for('aprovacoes.rejeitar_solicitacao', id=solicitacao.id) }}"
-                    onsubmit="return confirmarRejeicao(this);" style="display:inline;">
+                    onsubmit="return confirmarRejeicao(this);" style="display: inline;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="motivo" value="">
                     <button type="submit"
@@ -80,7 +81,7 @@
 </script>
 
 <p style="margin-top: 20px;">
-    <a href="{{ url_for('exemplo.dashboard') }}">&larr; Voltar ao painel</a>
+    <a href="{{ url_for('main.dashboard') }}">&larr; Voltar ao painel</a>
 </p>
 
 {% endblock %}

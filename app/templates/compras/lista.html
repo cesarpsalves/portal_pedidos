@@ -1,5 +1,7 @@
 {# templates/compras/lista.html #}
 {% extends 'base.html' %}
+{% block title %}Solicitações Aprovadas{% endblock %}
+
 {% block content %}
 
 <h2>Solicitações Aprovadas para Compra</h2>
@@ -8,31 +10,52 @@
 <table border="1" cellpadding="8" cellspacing="0">
     <thead>
         <tr>
-            <th>ID</th>
+            <th>Empresa Solicitante</th>
             <th>Finalidade</th>
+            <th>Itens</th>
+            <th>Unidade</th>
+            <th>Tipo de Recebimento</th>
             <th>Prazo Limite</th>
             <th>Solicitante</th>
-            <th>Ação</th>
+            <th>Ações</th>
         </tr>
     </thead>
     <tbody>
         {% for solicitacao in solicitacoes %}
         <tr>
-            <td>{{ solicitacao.id }}</td>
+            <td>
+                {{ solicitacao.empresa_solicitante.nome
+                if solicitacao.empresa_solicitante else '---' }}
+            </td>
             <td>{{ solicitacao.finalidade }}</td>
             <td>
+                {# Monta resumo dos primeiros dois itens, como em outras telas #}
+                {% set resumo = [] %}
+                {% for item in solicitacao.itens[:2] %}
+                {% set nome_limpo = item.nome_produto.strip() %}
+                {% if nome_limpo|length > 18 %}
+                {% set nome_curto = nome_limpo[:18].rsplit(' ', 1)[0] ~ '...' %}
+                {% else %}
+                {% set nome_curto = nome_limpo %}
+                {% endif %}
+                {% set entrada = item.quantidade ~ 'x ' ~ nome_curto %}
+                {% set _ = resumo.append(entrada) %}
+                {% endfor %}
+                {{ resumo | join(', ') }}{% if solicitacao.itens|length > 2 %}, …{% endif %}
+            </td>
+            <td>{{ solicitacao.unidade.nome if solicitacao.unidade else '---' }}</td>
+            <td>{{ solicitacao.tipo_recebimento }}</td>
+            <td>
                 {{ solicitacao.prazo_limite.strftime('%d/%m/%Y')
-                if solicitacao.prazo_limite else 'N/A' }}
+                if solicitacao.prazo_limite else '---' }}
             </td>
             <td>
-                {{ solicitacao.usuario.nome
-                if solicitacao.usuario else 'Desconhecido' }}
+                {{ solicitacao.usuario.nome if solicitacao.usuario else '---' }}
             </td>
             <td>
-                {# Botão “Ver Mais” leva à rota /compras/detalhes/<solicitacao_id> #}
-                    <a href="{{ url_for('compras.compra_detalhes', solicitacao_id=solicitacao.id) }}">
-                        <button>Ver Mais</button>
-                    </a>
+                <a href="{{ url_for('compras.compra_detalhes', solicitacao_id=solicitacao.id) }}">
+                    <button>Ver Mais</button>
+                </a>
             </td>
         </tr>
         {% endfor %}
@@ -43,6 +66,6 @@
 {% endif %}
 
 <br>
-<a href="{{ url_for('exemplo.dashboard') }}">&larr; Voltar ao painel</a>
+<a href="{{ url_for('main.dashboard') }}">&larr; Voltar ao painel</a>
 
 {% endblock %}

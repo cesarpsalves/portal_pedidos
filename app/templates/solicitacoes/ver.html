@@ -1,4 +1,6 @@
+{# templates/solicitacoes/ver.html #}
 {% extends 'base.html' %}
+
 {% block content %}
 
 <h2>Detalhes da Solicitação #{{ solicitacao.id }}</h2>
@@ -21,21 +23,26 @@
 {% endif %}
 
 *Itens Solicitados:*
-{% for item in itens %}- {{ item.quantidade }}x {{ item.nome_produto.split(' ')[0] }}
+{% for item in itens %}
+- {{ item.quantidade }}x {{ item.nome_produto }}
 {% endfor %}
 </textarea>
 
 <ul>
-    <li><strong>Empresa:</strong> {{ solicitacao.empresa_solicitante.nome if solicitacao.empresa_solicitante else '---'
-        }}</li>
-    <li><strong>Unidade:</strong> {{ solicitacao.unidade.nome if solicitacao.unidade else '---' }}</li>
+    <li><strong>Empresa:</strong>
+        {{ solicitacao.empresa_solicitante.nome if solicitacao.empresa_solicitante else '---' }}
+    </li>
+    <li><strong>Unidade:</strong>
+        {{ solicitacao.unidade.nome if solicitacao.unidade else '---' }}
+    </li>
     <li><strong>Solicitante:</strong> {{ solicitacao.usuario.nome }}</li>
     <li><strong>Finalidade:</strong> {{ solicitacao.finalidade }}</li>
     <li><strong>Centro de Custo:</strong> {{ solicitacao.centro_custo or '---' }}</li>
     <li><strong>Tipo de Recebimento:</strong> {{ solicitacao.tipo_recebimento }}</li>
     <li><strong>Status:</strong> {{ solicitacao.status }}</li>
-    <li><strong>Prazo Limite:</strong> {{ solicitacao.prazo_limite.strftime('%d/%m/%Y') if solicitacao.prazo_limite else
-        '---' }}</li>
+    <li><strong>Prazo Limite:</strong>
+        {{ solicitacao.prazo_limite.strftime('%d/%m/%Y') if solicitacao.prazo_limite else '---' }}
+    </li>
 </ul>
 
 <h3>Itens Solicitados</h3>
@@ -58,24 +65,42 @@
             <td>{{ item.quantidade }}</td>
             <td>{{ item.voltagem }}</td>
             <td>{{ item.especificacoes }}</td>
-            <td>{% if item.link %}<a href="{{ item.link }}" target="_blank">Link</a>{% endif %}</td>
+            <td>
+                {% if item.link %}
+                <a href="{{ item.link }}" target="_blank">Link</a>
+                {% else %}
+                ---
+                {% endif %}
+            </td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 
 <h3>Aprovar ou Rejeitar</h3>
+
+{# Formulário de Aprovação #}
 <form method="POST" action="{{ url_for('aprovacoes.aprovar_solicitacao', id=solicitacao.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" style="background-color: #4CAF50; color: white; padding: 8px 16px;">Aprovar</button>
+    <button type="submit" style="background-color: #4CAF50; color: white; padding: 8px 16px;">
+        Aprovar
+    </button>
 </form>
+
 <br>
+
+{# Formulário de Rejeição #}
 <form method="POST" action="{{ url_for('aprovacoes.rejeitar_solicitacao', id=solicitacao.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>Motivo da Rejeição:</label><br>
-    <textarea name="motivo" rows="3" cols="50" placeholder="Descreva aqui o motivo se for rejeitar..."></textarea><br>
-    <button type="submit" style="background-color: #f44336; color: white; padding: 8px 16px;">Rejeitar</button>
+    <label for="motivo">Motivo da Rejeição:</label><br>
+    <textarea name="motivo" id="motivo" rows="3" cols="50"
+        placeholder="Descreva aqui o motivo se for rejeitar..."></textarea>
+    <br>
+    <button type="submit" style="background-color: #f44336; color: white; padding: 8px 16px;">
+        Rejeitar
+    </button>
 </form>
+
 <br>
 <a href="{{ url_for('aprovacoes.listar_solicitacoes') }}">&larr; Voltar à lista</a>
 

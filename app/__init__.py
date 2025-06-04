@@ -1,34 +1,32 @@
 # app/__init__.py
 
 import os
-from flask import Flask
+from flask import Flask, current_app
 from flask_wtf import CSRFProtect
 from app.extensions import db, migrate
 from datetime import datetime
 
-# Crie a instância global do CSRFProtect
 csrf = CSRFProtect()
-
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object("config.Config")
 
-    # OBSERVAÇÃO: não reatribuímos app.secret_key aqui, pois já está em config.Config
-    #           Se você fizesse app.secret_key = os.urandom(24), a cada reload mudaria a chave,
-    #           invalidando o CSRF dos formulários anteriores.
-
-    # Inicializa extensões
     db.init_app(app)
     migrate.init_app(app, db)
-    csrf.init_app(app)  # <— Registra o CSRFProtect
+    csrf.init_app(app)
 
     @app.context_processor
     def inject_ano():
         return {"ano": datetime.now().year}
 
-    # Importar e registrar blueprints normalmente
-    from app.routes.exemplo import exemplo_bp
+    # ── NOVO ── Expor current_app ao contexto de templates ──
+    @app.context_processor
+    def expose_current_app():
+        return {"current_app": current_app}
+    # ────────────────────────────────────────────────────────
+
+    from app.routes.main import main_bp
     from app.routes.auth import auth_bp
     from app.routes.solicitacoes import solicitacoes_bp
     from app.routes.anexos import anexos_bp
@@ -38,7 +36,7 @@ def create_app():
     from app.routes.historico import historico_bp
     from app.routes.recebimentos import recebimentos_bp
 
-    app.register_blueprint(exemplo_bp)
+    app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(solicitacoes_bp)
     app.register_blueprint(anexos_bp)
