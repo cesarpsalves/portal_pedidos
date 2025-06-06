@@ -17,7 +17,7 @@ def lista_aprovacoes():
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Acesso negado.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.home"))
 
     solicitacoes_pendentes = Solicitacao.query.filter_by(status="pendente").all()
     return render_template("aprovacoes/lista.html", solicitacoes=solicitacoes_pendentes)
@@ -29,7 +29,7 @@ def aprovar_solicitacao(id):
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Você não tem permissão para aprovar.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.home"))
 
     solicitacao = Solicitacao.query.get_or_404(id)
     solicitacao.status = "aprovada"
@@ -45,7 +45,7 @@ def rejeitar_solicitacao(id):
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Você não tem permissão para rejeitar.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.home"))
 
     motivo = request.form.get("motivo")
     if not motivo:

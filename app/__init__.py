@@ -5,10 +5,10 @@ from flask import Flask, current_app
 from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
 from datetime import datetime
-from werkzeug.middleware.proxy_fix import ProxyFix   # <– adicione isto
+from werkzeug.middleware.proxy_fix import ProxyFix   # <– já estava aqui
 from app.extensions import db, migrate, mail
 
-# 1) Carrega o .env assim que importamos o pacote "app"
+# 1) Carrega o .env assim que importamos o pacote “app”
 load_dotenv()
 
 csrf = CSRFProtect()
@@ -18,11 +18,11 @@ def create_app():
     app = Flask(__name__)
 
     # 2a) Envolva o wsgi_app no ProxyFix para respeitar X-Forwarded-For/Proto
-    #     Isso faz com que flask.url_for(…, _external=True) saiba usar “https://portal.pauloalves.dev”
+    #     Isso faz com que flask.url_for(..., _external=True) saiba usar “https://portal.pauloalves.dev”
     #     em vez de “http://127.0.0.1:8000”.
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-    # 3) Carrega todas as variáveis de ambiente do sistema (do .env) em app.config
+    # 3) Carrega todas as variáveis de ambiente do sistema (ou seja, do .env) em app.config
     app.config.from_mapping(os.environ)
 
     # 4) Se não tiver “SQLALCHEMY_DATABASE_URI” em app.config, joga erro
@@ -30,20 +30,28 @@ def create_app():
     if not database_url:
         raise RuntimeError("É preciso definir DATABASE_URL no seu .env")
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+
+    # 5) Desliga track modifications (economiza recursos)
     app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
 
-    # 5) Inicializa extensões
+    # 6) Aqui definimos o pool_pre_ping e pool_recycle para evitar “MySQL server has gone away”
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,   # adapte este número conforme o wait_timeout do seu MySQL
+    }
+
+    # 7) Inicializa extensões
     db.init_app(app)
     migrate.init_app(app, db)
     mail.init_app(app)
     csrf.init_app(app)
 
-    # 6) Context processor para injetar o ano atual em todos os templates
+    # 8) Context processor para injetar o ano atual em todos os templates
     @app.context_processor
     def inject_ano():
         return {"ano": datetime.now().year}
 
-    # 7) Context processor para expor `current_app` nos templates
+    # 9) Context processor para expor `current_app` nos templates
     @app.context_processor
     def expose_current_app():
         return {"current_app": current_app}
@@ -75,7 +83,7 @@ def create_app():
 
     # **Importante**: o próprio make_google_blueprint (em google_auth.py) já define url_prefix="/login"
     app.register_blueprint(google_bp,      url_prefix="/login")
-    # Registramos nossa rota de callback “/login/google/callback”
+    # Registramos nossa rota de callback “/login/google/authorized”
     app.register_blueprint(google_auth_bp)
 
     # Finalmente, registre o resto dos blueprints:

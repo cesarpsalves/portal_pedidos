@@ -1,6 +1,65 @@
-(venv) root@srv851630:/opt/portal_pedidos# flask db migrate -m "Adiciona google_id e foto_url em usuarios, e torna
-senha_hash nullable"
-flask db upgrade
-Error: Path doesn't exist: migrations. Please use the 'init' command to create a new scripts folder.
-Error: Path doesn't exist: migrations. Please use the 'init' command to create a new scripts folder.
-(venv) root@srv851630:/opt/portal_pedidos#
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Gerenciar Usuários</h2>
+
+{# Bloco para exibir mensagens flash #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<ul class="flash-messages">
+    {% for category, message in messages %}
+    <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endwith %}
+
+<table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Perfis</th>
+            <th>Ação</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for usuario in usuarios %}
+        <tr>
+            <td>{{ usuario.id }}</td>
+            <td>{{ usuario.nome }}</td>
+            <td>{{ usuario.email }}</td>
+            <td>
+                {% if usuario.perfis %}
+                {{ usuario.perfis }}
+                {% else %}
+                {{ usuario.tipo }}
+                {% endif %}
+            </td>
+            <td>
+                <form method="POST" action="{{ url_for('admin.atualizar_perfis') }}">
+                    <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="perfis" multiple size="4">
+                        {% set opcoes = ['solicitante', 'aprovador', 'comprador', 'recebedor', 'tributario',
+                        'financeiro', 'administrador', 'gerente', 'diretor'] %}
+                        {% set perfis_usuario = usuario.perfis.split(',') if usuario.perfis else [] %}
+                        {% for perfil in opcoes %}
+                        <option value="{{ perfil }}" {% if perfil in perfis_usuario %}selected{% endif %}>
+                            {{ perfil }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit">Atualizar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br>
+<a href="{{ url_for('exemplo.dashboard') }}">← Voltar ao painel</a>
+
+{% endblock %}

@@ -20,7 +20,7 @@ def listar_solicitacoes():
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Acesso não autorizado.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     solicitacoes_pendentes = (
         Solicitacao.query.filter_by(status="pendente")
@@ -40,7 +40,7 @@ def aprovar_solicitacao(id):
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Você não tem permissão para aprovar.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     solicitacao = Solicitacao.query.get_or_404(id)
     solicitacao.status = "aprovada"
@@ -61,7 +61,7 @@ def rejeitar_solicitacao(id):
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Você não tem permissão para rejeitar.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     motivo = request.form.get("motivo")
     if not motivo:
@@ -89,7 +89,7 @@ def detalhes_solicitacao(solicitacao_id):
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Acesso não autorizado.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     solicitacao = Solicitacao.query.get_or_404(solicitacao_id)
     itens = ItemSolicitacao.query.filter_by(solicitacao_id=solicitacao.id).all()

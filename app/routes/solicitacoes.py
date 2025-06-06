@@ -154,7 +154,7 @@ def nova_solicitacao():
 
         db.session.commit()
         flash("Solicitação criada com sucesso!", "success")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     # Se GET, renderiza o formulário normalmente
     empresas = Empresa.query.order_by(Empresa.nome).all()
@@ -487,7 +487,7 @@ def importar_solicitacao():
 
         db.session.commit()
         flash(f"Importação concluída com sucesso: 1 solicitação e {total_itens} item(ns) gravado(s).", "success")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     # Se for GET, renderiza o formulário de upload
     return render_template("solicitacoes/importar.html")

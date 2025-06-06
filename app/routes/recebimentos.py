@@ -47,7 +47,7 @@ def anexar_nota_fiscal(id):
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in ["recebedor", "administrador"]:
         flash("Acesso negado.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     solicitacao = Solicitacao.query.get_or_404(id)
 
@@ -124,7 +124,7 @@ def lista_recebimentos():
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in ["recebedor", "administrador"]:
         flash("Acesso negado.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     # Puxamos as solicitações cujo status seja exatamente 'comprada'
     solicitacoes = (
@@ -146,7 +146,7 @@ def confirmar_recebimento(id):
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in ["recebedor", "administrador"]:
         flash("Acesso negado.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     solicitacao = Solicitacao.query.get_or_404(id)
 

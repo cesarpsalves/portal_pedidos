@@ -22,7 +22,7 @@ def lista_compras():
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_COMPRADOR:
         flash("Acesso negado.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     solicitacoes_aprovadas = Solicitacao.query.filter_by(status="aprovada").all()
     return render_template("compras/lista.html", solicitacoes=solicitacoes_aprovadas)
@@ -39,7 +39,7 @@ def compra_detalhes(solicitacao_id):
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_COMPRADOR:
         flash("Acesso negado.", "danger")
-        return redirect(url_for("exemplo.dashboard"))
+        return redirect(url_for("main.dashboard"))
 
     # Em GET: carrega a Solicitação (ela já existe) e mostra o formulário vazio
     solicitacao = Solicitacao.query.get_or_404(solicitacao_id)
