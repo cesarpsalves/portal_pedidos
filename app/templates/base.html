@@ -1,35 +1,31 @@
+{# app/templates/base.html #}
 <!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Portal de Pedidos{% endblock %}</title>
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="{{ url_for('static', filename='js/solicitacao.js') }}" defer></script>
+    <title>{% block title %}Portal{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
 <body>
-
-    <header>
-        <h1>Portal de Pedidos</h1>
-        {% if session.get("usuario_id") %}
-        <p>Bem-vindo, {{ session.get("usuario_nome") }} |
-            <a href="{{ url_for('auth.logout') }}">Sair</a>
-        </p>
+    <nav>
+        <a href="{{ url_for('main.home') }}">Home</a> |
+        {% if session.usuario_id %}
+        <a href="{{ url_for('auth.logout') }}">Logout</a> |
+        <span>Olá, {{ session.usuario_nome }}!</span>
+        {% else %}
+        <a href="{{ url_for('auth.login') }}">Login</a>
         {% endif %}
-        <hr>
-    </header>
+    </nav>
 
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
+    <hr>
+    {% block content %}{% endblock %}
+    <hr>
 
     <footer>
-        <hr>
-        <small>&copy; {{ ano }} - Sistema Interno</small>
+        &copy; {{ ano }} – Portal Grupo KFP
     </footer>
-
 </body>
 
 </html>

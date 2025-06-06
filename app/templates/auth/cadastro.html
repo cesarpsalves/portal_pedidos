@@ -5,7 +5,7 @@
 {% block content %}
 <h2>Cadastro</h2>
 
-{# Flash messages #}
+{# exibe flashes #}
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <ul class="flashes">
@@ -17,7 +17,6 @@
 {% endwith %}
 
 <form method="POST" action="{{ url_for('auth.cadastro') }}">
-    {# ← Campo CSRF obrigatório #}
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <label for="nome">Nome:</label><br>
@@ -39,4 +38,6 @@
 
     <button type="submit">Cadastrar</button>
 </form>
+
+<p>Já possui conta? <a href="{{ url_for('auth.login') }}">Faça login aqui</a>.</p>
 {% endblock %}

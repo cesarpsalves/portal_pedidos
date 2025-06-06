@@ -3,30 +3,24 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<h1>Bem-vindo, {{ session['usuario_nome'] }}!</h1>
-<p>Tipo de usuário: {{ session['usuario_tipo'] }}</p>
+<h2>Dashboard</h2>
+<p>Olá, {{ usuario_nome }}! Você está logado.</p>
 
 <ul>
-    <li><a href="{{ url_for('solicitacoes.nova_solicitacao') }}">Nova Solicitação de Compra</a></li>
-    <li><a href="{{ url_for('solicitacoes.lista_solicitacoes') }}">Minhas Solicitações</a></li>
+    {# O link a seguir antes usava 'solicitacoes.minhas_solicitacoes',
+    que não existia. Substituímos pelo endpoint correto: 'solicitacoes.lista_solicitacoes'. #}
+    <li>
+        <a href="{{ url_for('solicitacoes.lista_solicitacoes') }}">Minhas Solicitações</a>
+    </li>
 
-    {% if session['usuario_tipo'] in ["aprovador", "administrador", "gerente", "diretor"] %}
-    <li><a href="{{ url_for('aprovacoes.listar_solicitacoes') }}">Aprovar/Rejeitar Solicitações</a></li>
-    {% endif %}
-
-    {% if session['usuario_tipo'] in ["comprador", "administrador", "gerente", "diretor"] %}
+    {# Outros links de funcionalidades (exemplos) #}
     <li><a href="{{ url_for('compras.lista_compras') }}">Solicitações Aprovadas para Compra</a></li>
+
+    {# Menu “Gerenciar Usuários” só para perfis gerenciais #}
+    {% if session.get("usuario_tipo") in ["administrador", "gerente", "diretor"] %}
+    <li><a href="{{ url_for('admin.gerenciar_usuarios') }}">Gerenciar Usuários</a></li>
     {% endif %}
 
-    {% if session['usuario_tipo'] in ["recebedor", "administrador"] %}
-    <li><a href="{{ url_for('recebimentos.lista_recebimentos') }}">Confirmar Recebimento</a></li>
-    {% endif %}
-
-    {% if session['usuario_tipo'] in ["tributario", "financeiro", "administrador"] %}
-    <li><a href="#">Finalizar Processos</a></li> <!-- ajuste futuro -->
-    {% endif %}
-
-    <li><a href="{{ url_for('historico.historico_solicitacoes') }}">Histórico</a></li>
-    <li><a href="{{ url_for('auth.logout') }}">Sair</a></li>
+    <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
 </ul>
 {% endblock %}

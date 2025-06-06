@@ -1,5 +1,3 @@
-# app/routes/main.py
-
 from flask import Blueprint, render_template, session
 from app.utils.auth import login_required
 

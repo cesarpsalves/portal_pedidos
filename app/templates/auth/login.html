@@ -5,7 +5,6 @@
 {% block content %}
 <h2>Entrar</h2>
 
-{# Exibe mensagens flash (erro, sucesso) #}
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <ul class="flashes">
@@ -17,9 +16,7 @@
 {% endwith %}
 
 <form method="POST" action="{{ url_for('auth.login') }}">
-    {# ← Campo obrigatorio para proteger contra CSRF: #}
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
     <label for="email">E-mail:</label><br>
     <input type="email" name="email" id="email" required><br><br>
 
@@ -33,7 +30,6 @@
     Ainda não tem conta? <a href="{{ url_for('auth.cadastro') }}">Cadastre‐se aqui</a>.
 </p>
 
-{# ← Exibe “Entrar com Google” somente se existir o endpoint google.login #}
 {% if 'google.login' in current_app.view_functions %}
 <hr>
 <p>OU</p>
