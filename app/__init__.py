@@ -5,63 +5,80 @@ from flask import Flask, current_app
 from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
 from datetime import datetime
+from werkzeug.middleware.proxy_fix import ProxyFix   # <– adicione isto
 from app.extensions import db, migrate, mail
 
-# 1) Carrega as variáveis do .env assim que o pacote “app” for importado
+# 1) Carrega o .env assim que importamos o pacote "app"
 load_dotenv()
 
 csrf = CSRFProtect()
 
 def create_app():
+    # 2) Cria a instância do Flask
     app = Flask(__name__)
 
-    # 2) Carrega tudo do .env em app.config (NÃO use config_dev/config_prod aqui)
+    # 2a) Envolva o wsgi_app no ProxyFix para respeitar X-Forwarded-For/Proto
+    #     Isso faz com que flask.url_for(…, _external=True) saiba usar “https://portal.pauloalves.dev”
+    #     em vez de “http://127.0.0.1:8000”.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # 3) Carrega todas as variáveis de ambiente do sistema (do .env) em app.config
     app.config.from_mapping(os.environ)
 
-    # 3) Traduz DATABASE_URL → SQLALCHEMY_DATABASE_URI
+    # 4) Se não tiver “SQLALCHEMY_DATABASE_URI” em app.config, joga erro
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise RuntimeError("É preciso definir DATABASE_URL no seu .env")
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
 
-    # 4) Inicializa as extensões
+    # 5) Inicializa extensões
     db.init_app(app)
     migrate.init_app(app, db)
     mail.init_app(app)
     csrf.init_app(app)
 
-    # 5) Injeta o ano atual e current_app nos templates
+    # 6) Context processor para injetar o ano atual em todos os templates
     @app.context_processor
     def inject_ano():
         return {"ano": datetime.now().year}
 
+    # 7) Context processor para expor `current_app` nos templates
     @app.context_processor
     def expose_current_app():
         return {"current_app": current_app}
 
-    # ─── IMPORTAÇÃO DOS SEUS BLUEPRINTS ──────────────────────────────────────
+    # ─────────────── REGISTRO DE BLUEPRINTS ────────────────
 
-    from app.routes.main         import main_bp
-    from app.routes.auth         import auth_bp
-    from app.routes.google_auth  import google_bp, google_auth_bp
-    from app.routes.solicitacoes import solicitacoes_bp
-    from app.routes.anexos       import anexos_bp
-    from app.routes.admin        import admin_bp
-    from app.routes.aprovacoes   import aprovacoes_bp
-    from app.routes.compras      import compras_bp
-    from app.routes.historico    import historico_bp
-    from app.routes.recebimentos import recebimentos_bp
+    # a) Rota principal (“home”, “/dashboard”, etc.)
+    from app.routes.main import main_bp
 
-    # ─── REGISTRO DE BLUEPRINTS NA ORDEM CORRETA ────────────────────────────
+    # b) Rotas de autenticação manual (login, logout, cadastro)
+    from app.routes.auth import auth_bp
+
+    # c) Rotas relacionadas ao Google OAuth (Flask-Dance)
+    from app.routes.google_auth import google_bp, google_auth_bp
+
+    # d) Outras partes do sistema
+    from app.routes.solicitacoes   import solicitacoes_bp
+    from app.routes.anexos        import anexos_bp
+    from app.routes.admin         import admin_bp
+    from app.routes.aprovacoes    import aprovacoes_bp
+    from app.routes.compras       import compras_bp
+    from app.routes.historico     import historico_bp
+    from app.routes.recebimentos  import recebimentos_bp
+
+    # ─── A ordem de registro importa ────────────────────────
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
 
-    # → aqui dizemos ao Flask-Dance para montar “/login/google” e “/login/google/authorized”
-    app.register_blueprint(google_bp,     url_prefix="/login")
-    app.register_blueprint(google_auth_bp)  # o callback "/login/google/authorized"
+    # **Importante**: o próprio make_google_blueprint (em google_auth.py) já define url_prefix="/login"
+    app.register_blueprint(google_bp,      url_prefix="/login")
+    # Registramos nossa rota de callback “/login/google/callback”
+    app.register_blueprint(google_auth_bp)
 
+    # Finalmente, registre o resto dos blueprints:
     app.register_blueprint(solicitacoes_bp)
     app.register_blueprint(anexos_bp)
     app.register_blueprint(admin_bp)
