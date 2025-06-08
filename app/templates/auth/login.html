@@ -1,40 +1,39 @@
-{# templates/auth/login.html #}
 {% extends 'base.html' %}
 {% block title %}Login{% endblock %}
 
 {% block content %}
 <h2>Entrar</h2>
 
+{# Mensagens flash #}
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
-<ul class="flashes">
-    {% for category, message in messages %}
-    <li class="flash-{{ category }}">{{ message }}</li>
+<ul class="flash-messages">
+    {% for category, msg in messages %}
+    <li class="{{ category }}">{{ msg|safe }}</li>
     {% endfor %}
 </ul>
 {% endif %}
 {% endwith %}
 
+{# Formulário de login #}
 <form method="POST" action="{{ url_for('auth.login') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label for="email">E-mail:</label><br>
-    <input type="email" name="email" id="email" required><br><br>
-
-    <label for="senha">Senha:</label><br>
-    <input type="password" name="senha" id="senha" required><br><br>
-
+    <div>
+        <label for="email">E-mail:</label><br>
+        <input id="email" name="email" type="email" required value="{{ request.form.get('email','') }}">
+    </div>
+    <div>
+        <label for="senha">Senha:</label><br>
+        <input id="senha" name="senha" type="password" required>
+    </div>
+    <br>
     <button type="submit">Entrar</button>
 </form>
 
-<p>
-    Ainda não tem conta? <a href="{{ url_for('auth.cadastro') }}">Cadastre‐se aqui</a>.
-</p>
+<p>Ainda não tem conta? <a href="{{ url_for('auth.cadastro') }}">Cadastre-se aqui</a>.</p>
 
-{% if 'google.login' in current_app.view_functions %}
 <hr>
+
 <p>OU</p>
-<p>
-    <a href="{{ url_for('google.login') }}">Entrar com Google</a>
-</p>
-{% endif %}
+<p><a href="{{ url_for('google.login') }}">Entrar com Google</a></p>
 {% endblock %}

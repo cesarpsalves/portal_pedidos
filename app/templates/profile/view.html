@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Meu Perfil{% endblock %}
+
+{% block content %}
+<h2>Meu Perfil</h2>
+
+<p><strong>Nome:</strong> {{ user.nome }}</p>
+<p><strong>E-mail de login:</strong> {{ user.email_principal }}</p>
+<p><strong>E-mail da empresa:</strong> {{ user.email_empresa or '–' }}</p>
+<p><strong>Status de ativação:</strong>
+    {% if user.status == Status.ATIVO %}
+    <span style="color:green">Ativo</span>
+    {% elif user.status == Status.AGUARDANDO %}
+    <span style="color:orange">Aguardando ativação</span>
+    {% else %}
+    <span style="color:red">Inativo</span>
+    {% endif %}
+</p>
+
+{# — Caso seja google-user pendente sem email_empresa — #}
+{% if user.google_id and user.status == Status.AGUARDANDO and not user.email_empresa %}
+<p>
+    Caso seja funcionário autorizado,
+    <a href="{{ url_for('profile.request_activation') }}">
+        clique aqui para solicitar ativação
+    </a>.
+</p>
+{% endif %}
+
+<hr>
+
+<a href="{{ url_for('profile.edit') }}">✏️ Editar perfil</a>
+{% if user.email_empresa and user.status == Status.AGUARDANDO %}
+| <a href="{{ url_for('profile.send_confirm') }}">📧 Enviar confirmação de e-mail</a>
+{% endif %}
+
+<hr>
+
+{# Vincular / Desvincular Google #}
+{% if not user.email_google %}
+<a href="{{ url_for('google.login') }}">🔗 Vincular conta Google</a>
+{% else %}
+<p><strong>Google vinculado:</strong> {{ user.email_google }}</p>
+<a href="{{ url_for('google_auth.google_unlink') }}">❌ Desvincular Google</a>
+{% endif %}
+
+<hr>
+<a href="{{ url_for('main.dashboard') }}">← Voltar ao Painel</a>
+{% endblock %}

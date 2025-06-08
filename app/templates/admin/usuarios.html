@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
+
+{% block title %}Gerenciar Usuários{% endblock %}
 {% block content %}
 
 <h2>Gerenciar Usuários</h2>
 
-{# Bloco para exibir mensagens flash #}
+{# Flash messages #}
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <ul class="flash-messages">
@@ -19,7 +21,9 @@
         <tr>
             <th>ID</th>
             <th>Nome</th>
-            <th>E-mail</th>
+            <th>E-mail (login)</th>
+            <th>E-mail Empresa</th>
+            <th>Status</th>
             <th>Perfis</th>
             <th>Ação</th>
         </tr>
@@ -29,22 +33,25 @@
         <tr>
             <td>{{ usuario.id }}</td>
             <td>{{ usuario.nome }}</td>
-            <td>{{ usuario.email }}</td>
+            <td>{{ usuario.email_principal }}</td>
+            <td>{{ usuario.email_empresa or '–' }}</td>
             <td>
-                {% if usuario.perfis %}
-                {{ usuario.perfis }}
+                {% if usuario.ativo %}
+                <span style="color:green">Ativo</span>
                 {% else %}
-                {{ usuario.tipo }}
+                <span style="color:orange">Pendente</span>
                 {% endif %}
             </td>
+            <td>{{ usuario.perfis }}</td>
             <td>
                 <form method="POST" action="{{ url_for('admin.atualizar_perfis') }}">
+                    {{ csrf_token() }}
                     <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <select name="perfis" multiple size="4">
-                        {% set opcoes = ['solicitante', 'aprovador', 'comprador', 'recebedor', 'tributario',
-                        'financeiro', 'administrador', 'gerente', 'diretor'] %}
-                        {% set perfis_usuario = usuario.perfis.split(',') if usuario.perfis else [] %}
+                    <select name="perfis" multiple size="5">
+                        {% set opcoes = ['solicitante','aprovador','comprador',
+                        'recebedor','tributario','financeiro',
+                        'administrador','gerente','diretor'] %}
+                        {% set perfis_usuario = usuario.perfis.split(',') %}
                         {% for perfil in opcoes %}
                         <option value="{{ perfil }}" {% if perfil in perfis_usuario %}selected{% endif %}>
                             {{ perfil }}

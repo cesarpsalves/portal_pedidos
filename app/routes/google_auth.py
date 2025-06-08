@@ -1,59 +1,44 @@
-# app/routes/google_auth.py
-
 import os
-from flask import Blueprint, redirect, url_for, flash, session, current_app
+from functools import wraps
+from markupsafe import Markup
+from flask import (
+    Blueprint, redirect, url_for, flash,
+    session, current_app
+)
 from flask_dance.contrib.google import make_google_blueprint, google
 from app.extensions import db
-from app.models.usuarios import Usuario
+from app.models.usuarios import Usuario, Status
 
-# ─── 1) Cria o “blueprint” do Flask-Dance para o Google ────────────────────────────
-#
-#    • Não passe url_prefix aqui; o próprio make_google_blueprint já define "/login".
-#    • Em vez de usar “redirect_to” (que conflita com o caminho "/authorized"),
-#      vamos dizer explicitamente “redirect_url='/login/google/callback'”.
-#    • O Google enviará o “code” para "/login/google/callback" depois que o usuário
-#      der consentimento.
-#
+# monte o blueprint do Flask-Dance
 google_bp = make_google_blueprint(
     client_id     = os.getenv("GOOGLE_CLIENT_ID"),
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET"),
-    scope = [
+    scope         = [
         "openid",
         "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/userinfo.profile",
     ],
-    redirect_url  = "/login/google/callback"  # <—  colocar exatamente este URL de callback
+    redirect_url  = "/login/google/callback"
 )
 
-# ─── 2) Nosso próprio blueprint, que agora trata “/login/google/callback” ──────────
-#
 google_auth_bp = Blueprint("google_auth", __name__)
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("usuario_id"):
+            flash("Faça login para continuar.", "warning")
+            return redirect(url_for("auth.login"))
+        return f(*args, **kwargs)
+    return decorated
+
 
 @google_auth_bp.route("/login/google/callback")
 def google_authorized():
-    """
-    Esta função será chamada depois que o Google redirecionar para
-    /login/google/callback?state=…&code=….
-    O Flask-Dance já deve ter trocado o 'code' por token.
-    Se algo der errado (token não obtido), 'google.authorized' será False.
-    """
-
-    # ─── DEBUG: para entender se google.authorized == True ou False
-    print(">>> DEBUG: google.authorized =", google.authorized)
-
-    # 1) Se ainda não está autorizado (token não foi obtido ou está incorreto),
-    #    retornamos ao fluxo de login do Flask-Dance, que vai para o Google novamente.
     if not google.authorized:
-        resp = google.get("/oauth2/v2/userinfo")
-        print(">>> DEBUG: resp.ok =", resp.ok)
-        print(">>> DEBUG: resp.status_code =", resp.status_code)
-        print(">>> DEBUG: resp.text[:200] =", resp.text[:200], "…")
         return redirect(url_for("google.login"))
 
-    # ─── DEBUG: Se google.authorized == True, deveríamos ter o token na sessão
-    print(">>> DEBUG: token armazenado em sessão =", session.get("google_oauth_token"))
-
-    # 2) Agora, realmente buscamos o perfil do usuário no Google
     resp = google.get("/oauth2/v2/userinfo")
     if not resp.ok:
         flash("Falha ao obter dados do Google.", "danger")
@@ -65,55 +50,86 @@ def google_authorized():
     google_id = info.get("id")
     foto      = info.get("picture")
 
-    usuario = None
-
-    # 3) Se já existia um usuário com esse google_id, buscamos por google_id
-    if google_id:
-        usuario = Usuario.query.filter_by(google_id=google_id).first()
-
-    # 4) Se não encontramos via google_id, tentamos achar pelo e-mail
-    if not usuario:
-        usuario = Usuario.query.filter_by(email=email).first()
+    # 1) tenta encontrar pelo google_id ou pelo email_principal
+    usuario = Usuario.query.filter_by(google_id=google_id).first() \
+           or Usuario.query.filter_by(email_principal=email).first()
 
     if usuario:
-        # 5) Se achou um usuário já cadastrado, atualiza google_id/foto se necessário
-        usuario.google_id = google_id or usuario.google_id
-        usuario.foto_url  = foto or usuario.foto_url
+        # Atualiza dados de vinculação e imagem
+        usuario.google_id    = google_id
+        usuario.email_google = email
+        usuario.foto_url     = foto or usuario.foto_url
 
-        # Se não estava ativo, mas for domínio autorizado, ativa aqui:
-        if not usuario.ativo:
-            dominio = "@" + email.split("@")[-1]
-            if dominio in current_app.config.get("DOMINIOS_AUTORIZADOS", []):
-                usuario.ativo = True
+        # Auto-ativa se domínio interno e ainda for pendente
+        if usuario.status == Status.AGUARDANDO:
+            dominio  = "@" + email.split("@")[-1]
+            dominios = current_app.config.get("DOMINIOS_AUTORIZADOS", [])
+            if dominio in dominios:
+                usuario.status           = Status.ATIVO
+                usuario.email_confirmado = True
 
         db.session.commit()
+
     else:
-        # 6) Se não existe, cria um novo “solicitante” já ativo (login só via Google)
-        novo = Usuario(
-            nome             = nome or email.split("@")[0],
-            email            = email,
-            senha_hash       = None,  # sem senha, só login via Google
-            google_id        = google_id,
-            tipo             = "solicitante",
-            ativo            = True,
-            perfis           = "solicitante",
-            foto_url         = foto or "/static/images/default_user.png",
-            email_confirmado = True,  # validamos pela conta Google
-        )
-        db.session.add(novo)
-        db.session.commit()
-        usuario = novo
+        # Cria novo usuário no primeiro login via Google
+        dominio  = "@" + email.split("@")[-1]
+        dominios = current_app.config.get("DOMINIOS_AUTORIZADOS", [])
+        status   = Status.ATIVO if dominio in dominios else Status.AGUARDANDO
 
-    # 7) Se, por algum motivo, o usuário ainda não estiver ativo
-    if not usuario.ativo:
-        flash("Conta Google ainda não ativada.", "warning")
+        usuario = Usuario(
+            nome             = nome or email.split("@")[0],
+            email_principal  = email,
+            senha_hash       = None,
+            google_id        = google_id,
+            email_google     = email,
+            tipo             = "solicitante",
+            perfis           = "solicitante",
+            unidade_id       = None,
+            status           = status,
+            email_confirmado = (status == Status.ATIVO),
+            foto_url         = foto or "/static/images/default_user.png",
+        )
+        db.session.add(usuario)
+        db.session.commit()
+
+    # 2) só popula sessão se estiver ATIVO
+    if usuario.status != Status.ATIVO:
+        if usuario.status == Status.AGUARDANDO:
+            # passo o email na query para preencher o formulário de ativação
+            link = url_for("profile.request_activation", email=usuario.email_principal)
+            msg  = Markup(
+                "Sua conta está aguardando ativação. "
+                f"<a href='{link}'>Clique aqui</a> se for funcionário autorizado."
+            )
+            flash(msg, "warning")
+        else:
+            flash("Conta desativada. Contate o administrador.", "danger")
+
         return redirect(url_for("auth.login"))
 
-    # 8) Faz login de verdade: grava dados na sessão e redireciona ao dashboard
+    # 3) popula sessão e segue normalmente
     session["usuario_id"]         = usuario.id
     session["usuario_nome"]       = usuario.nome
     session["usuario_tipo"]       = usuario.tipo
+    session["usuario_perfis"]     = usuario.perfis
     session["usuario_unidade_id"] = usuario.unidade_id
+    session["usuario_foto"]       = usuario.foto_url or url_for(
+        "static", filename="images/default_user.png"
+    )
 
     flash("Login via Google realizado com sucesso!", "success")
     return redirect(url_for("main.dashboard"))
+
+
+@google_auth_bp.route("/google/unlink")
+@login_required
+def google_unlink():
+    """
+    Desvincula a conta Google do usuário logado.
+    """
+    usuario = Usuario.query.get(session["usuario_id"])
+    usuario.google_id    = None
+    usuario.email_google = None
+    db.session.commit()
+    flash("Conta Google desvinculada com sucesso.", "info")
+    return redirect(url_for("profile.view"))

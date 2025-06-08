@@ -7,17 +7,15 @@
 <p>Olá, {{ usuario_nome }}! Você está logado.</p>
 
 <ul>
-    {# O link a seguir antes usava 'solicitacoes.minhas_solicitacoes',
-    que não existia. Substituímos pelo endpoint correto: 'solicitacoes.lista_solicitacoes'. #}
-    <li>
-        <a href="{{ url_for('solicitacoes.lista_solicitacoes') }}">Minhas Solicitações</a>
-    </li>
-
-    {# Outros links de funcionalidades (exemplos) #}
+    <li><a href="{{ url_for('solicitacoes.lista_solicitacoes') }}">Minhas Solicitações</a></li>
     <li><a href="{{ url_for('compras.lista_compras') }}">Solicitações Aprovadas para Compra</a></li>
 
-    {# Menu “Gerenciar Usuários” só para perfis gerenciais #}
-    {% if session.get("usuario_tipo") in ["administrador", "gerente", "diretor"] %}
+    {# Link para Perfil do Usuário #}
+    <li><a href="{{ url_for('profile.view') }}">Meu Perfil</a></li>
+
+    {# Menu “Gerenciar Usuários” só para quem tiver o papel apropriado #}
+    {% set roles = session.get("usuario_perfis", "").split(",") %}
+    {% if "administrador" in roles or "gerente" in roles or "diretor" in roles %}
     <li><a href="{{ url_for('admin.gerenciar_usuarios') }}">Gerenciar Usuários</a></li>
     {% endif %}
 

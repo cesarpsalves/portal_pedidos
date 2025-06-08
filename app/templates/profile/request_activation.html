@@ -1,0 +1,39 @@
+{# app/templates/profile/request_activation.html #}
+{% extends 'base.html' %}
+
+{% block title %}Solicitar Ativação de Conta{% endblock %}
+
+{% block content %}
+<h2>Solicitar Ativação de Conta</h2>
+<p>Finalize o preenchimento para ativar sua conta.</p>
+
+<form method="POST" action="{{ url_for('profile.request_activation') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# O e-mail de login vem pela querystring ou pela sessão #}
+    {% set email_login = request.args.get('email') or session.get('usuario_email') %}
+    <input type="hidden" name="email_principal" value="{{ email_login }}">
+    <p><strong>E-mail de Login:</strong> {{ email_login or '–' }}</p>
+
+    <div>
+        <label for="email_empresa">E-mail da Empresa:</label><br>
+        <input id="email_empresa" name="email_empresa" type="email" required>
+    </div>
+
+    <div>
+        <label for="unidade_id">Unidade:</label><br>
+        <select id="unidade_id" name="unidade_id" required>
+            <option value="">– Selecione –</option>
+            {% for u in unidades %}
+            <option value="{{ u.id }}">{{ u.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <br>
+    <button type="submit">Enviar Pedido</button>
+</form>
+
+<br>
+<a href="{{ url_for('auth.login') }}">← Voltar ao Login</a>
+{% endblock %}

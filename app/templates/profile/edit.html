@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Editar Perfil{% endblock %}
+
+{% block content %}
+<h2>Editar Perfil</h2>
+
+<form method="POST" action="{{ url_for('profile.edit') }}">
+    {{ csrf_token() }}
+    <div>
+        <label for="nome">Nome:</label><br>
+        <input id="nome" name="nome" value="{{ user.nome }}" required>
+    </div>
+    <div>
+        <label for="email_principal">E-mail de Login:</label><br>
+        <input id="email_principal" name="email_principal" value="{{ user.email_principal }}" required>
+    </div>
+    <div>
+        <label for="foto_url">URL da Foto:</label><br>
+        <input id="foto_url" name="foto_url" value="{{ user.foto_url }}">
+    </div>
+    <div>
+        <label for="email_empresa">E-mail da Empresa (para ativação):</label><br>
+        <input id="email_empresa" name="email_empresa" value="{{ user.email_empresa }}">
+    </div>
+    <br>
+    <button type="submit">Salvar alterações</button>
+</form>
+
+<br>
+<a href="{{ url_for('profile.view') }}">← Voltar</a>
+{% endblock %}
