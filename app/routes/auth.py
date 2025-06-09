@@ -1,5 +1,5 @@
 # app/routes/auth.py
-# Autenticação e cadastro de usuários
+# Autenticação, cadastro, definição e alteração de senha
 
 import os
 from markupsafe import Markup
@@ -14,7 +14,6 @@ from app.models.unidades import Unidade
 
 auth_bp = Blueprint("auth", __name__)
 
-# Fallback se não estiver definido em config.py
 DOMINIOS_PADRAO = (
     "@kfp.com.br",
     "@kfp.net.br",
@@ -35,14 +34,12 @@ def login():
         dominios = current_app.config.get("DOMINIOS_AUTORIZADOS", DOMINIOS_PADRAO)
         dominio_email = "@" + email.split("@")[-1]
 
-        # auto-ativa usuários pendentes de domínio interno
         if usuario.status == Status.AGUARDANDO and dominio_email in dominios:
             usuario.status = Status.ATIVO
             usuario.email_confirmado = True
             db.session.commit()
             flash("Conta ativada automaticamente por domínio interno.", "info")
 
-        # bloqueia login se ainda não ativos ou inativos
         if usuario.status != Status.ATIVO:
             if usuario.status == Status.AGUARDANDO:
                 link = url_for('profile.request_activation')
@@ -55,15 +52,16 @@ def login():
                 flash("Conta desativada. Contate o administrador.", "danger")
             return redirect(url_for("auth.login"))
 
-        # popula sessão
         session["usuario_id"]         = usuario.id
         session["usuario_nome"]       = usuario.nome
         session["usuario_tipo"]       = usuario.tipo
         session["usuario_perfis"]     = usuario.perfis
         session["usuario_unidade_id"] = usuario.unidade_id
+        session["usuario_status"]     = int(usuario.status)
         session["usuario_foto"]       = usuario.foto_url or url_for(
             "static", filename="images/default_user.png"
         )
+
 
         flash("Login realizado com sucesso!", "success")
         return redirect(url_for("main.dashboard"))
@@ -129,3 +127,64 @@ def cadastro():
 
     unidades = Unidade.query.order_by(Unidade.nome).all()
     return render_template("auth/cadastro.html", unidades=unidades)
+
+@auth_bp.route("/definir-senha", methods=["GET", "POST"])
+def definir_senha():
+    if "usuario_id" not in session:
+        flash("Você precisa estar logado para definir uma senha.", "danger")
+        return redirect(url_for("auth.login"))
+
+    usuario = Usuario.query.get(session["usuario_id"])
+
+    if request.method == "POST":
+        senha = request.form.get("senha", "").strip()
+        confirmar = request.form.get("confirmar_senha", "").strip()
+
+        if senha != confirmar:
+            flash("As senhas não coincidem.", "danger")
+            return redirect(url_for("auth.definir_senha"))
+
+        if len(senha) < 8:
+            flash("A senha deve ter pelo menos 8 caracteres.", "danger")
+            return redirect(url_for("auth.definir_senha"))
+
+        usuario.senha_hash = generate_password_hash(senha)
+        db.session.commit()
+
+        flash("Senha definida com sucesso!", "success")
+        return redirect(url_for("profile.view"))
+
+    return render_template("auth/set_password.html")
+
+@auth_bp.route("/alterar-senha", methods=["GET", "POST"])
+def alterar_senha():
+    if "usuario_id" not in session:
+        flash("Você precisa estar logado para alterar sua senha.", "danger")
+        return redirect(url_for("auth.login"))
+
+    usuario = Usuario.query.get(session["usuario_id"])
+
+    if request.method == "POST":
+        atual = request.form.get("senha_atual", "").strip()
+        nova = request.form.get("nova_senha", "").strip()
+        confirmar = request.form.get("confirmar_senha", "").strip()
+
+        if not check_password_hash(usuario.senha_hash, atual):
+            flash("Senha atual incorreta.", "danger")
+            return redirect(url_for("auth.alterar_senha"))
+
+        if nova != confirmar:
+            flash("As novas senhas não coincidem.", "danger")
+            return redirect(url_for("auth.alterar_senha"))
+
+        if len(nova) < 8:
+            flash("A nova senha deve ter pelo menos 8 caracteres.", "danger")
+            return redirect(url_for("auth.alterar_senha"))
+
+        usuario.senha_hash = generate_password_hash(nova)
+        db.session.commit()
+
+        flash("Senha alterada com sucesso!", "success")
+        return redirect(url_for("profile.view"))
+
+    return render_template("auth/change_password.html")

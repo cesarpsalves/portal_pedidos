@@ -1,49 +1,53 @@
 {% extends 'base.html' %}
-{% block title %}Meu Perfil{% endblock %}
+
+{% block title %}Perfil{% endblock %}
 
 {% block content %}
-<h2>Meu Perfil</h2>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/perfil.css') }}">
 
-<p><strong>Nome:</strong> {{ user.nome }}</p>
-<p><strong>E-mail de login:</strong> {{ user.email_principal }}</p>
-<p><strong>E-mail da empresa:</strong> {{ user.email_empresa or '–' }}</p>
-<p><strong>Status de ativação:</strong>
-    {% if user.status == Status.ATIVO %}
-    <span style="color:green">Ativo</span>
-    {% elif user.status == Status.AGUARDANDO %}
-    <span style="color:orange">Aguardando ativação</span>
-    {% else %}
-    <span style="color:red">Inativo</span>
-    {% endif %}
-</p>
+<div class="perfil-container">
+    <div class="perfil-header">
+        <img src="{{ user.foto_url or url_for('static', filename='images/default_user.png') }}" alt="Foto de Perfil"
+            class="perfil-foto">
+        <div>
+            <h2>{{ user.nome }}</h2>
+            <p class="email-principal">{{ user.email_principal }}</p>
+            {% if user.email_empresa %}
+            <p class="email-secundario">E-mail Corporativo: {{ user.email_empresa }}</p>
+            {% endif %}
+            <a href="{{ url_for('profile.edit') }}" class="btn-editar">Editar Perfil</a>
+        </div>
+    </div>
 
-{# — Caso seja google-user pendente sem email_empresa — #}
-{% if user.google_id and user.status == Status.AGUARDANDO and not user.email_empresa %}
-<p>
-    Caso seja funcionário autorizado,
-    <a href="{{ url_for('profile.request_activation') }}">
-        clique aqui para solicitar ativação
-    </a>.
-</p>
-{% endif %}
+    <div class="perfil-info">
+        <p><strong>Unidade:</strong> {{ user.unidade.nome if user.unidade else '—' }}</p>
 
-<hr>
+        {% if user.email_google %}
+        <p><strong>Conta Google vinculada:</strong> {{ user.email_google }}</p>
+        <form method="POST" action="{{ url_for('google_auth.google_unlink') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-desvincular"
+                onclick="return confirm('Tem certeza que deseja desvincular do Google?')">
+                Desvincular Conta Google
+            </button>
+        </form>
+        {% else %}
+        <p><strong>Conta Google:</strong> <em>não vinculada</em></p>
+        {% if session.usuario_id == user.id %}
+        <a href="{{ url_for('google.login') }}" class="btn-vincular">
+            Vincular Conta Google
+        </a>
+        {% endif %}
+        {% endif %}
 
-<a href="{{ url_for('profile.edit') }}">✏️ Editar perfil</a>
-{% if user.email_empresa and user.status == Status.AGUARDANDO %}
-| <a href="{{ url_for('profile.send_confirm') }}">📧 Enviar confirmação de e-mail</a>
-{% endif %}
-
-<hr>
-
-{# Vincular / Desvincular Google #}
-{% if not user.email_google %}
-<a href="{{ url_for('google.login') }}">🔗 Vincular conta Google</a>
-{% else %}
-<p><strong>Google vinculado:</strong> {{ user.email_google }}</p>
-<a href="{{ url_for('google_auth.google_unlink') }}">❌ Desvincular Google</a>
-{% endif %}
-
-<hr>
-<a href="{{ url_for('main.dashboard') }}">← Voltar ao Painel</a>
+        {% if not user.senha_hash %}
+        <div class="alerta-senha">
+            <strong>Aviso:</strong> Você ainda não tem uma senha cadastrada.<br>
+            <a href="{{ url_for('auth.definir_senha') }}">Clique aqui para criar uma senha de acesso</a>.
+        </div>
+        {% else %}
+        <p><a href="{{ url_for('auth.definir_senha') }}">Alterar senha</a></p>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

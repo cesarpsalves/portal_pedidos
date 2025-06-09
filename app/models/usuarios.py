@@ -1,11 +1,12 @@
 from datetime import datetime
+from enum import IntEnum
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
 
-class Status:
-    INATIVO    = 0
+class Status(IntEnum):
+    INATIVO = 0
     AGUARDANDO = 1
-    ATIVO      = 2
+    ATIVO = 2
 
 class Usuario(db.Model):
     __tablename__ = "usuarios"
@@ -24,6 +25,8 @@ class Usuario(db.Model):
 
     google_id        = db.Column(db.String(200), unique=True, nullable=True)
     email_google     = db.Column(db.String(150), unique=True, nullable=True)
+
+    logs = db.relationship("Log", back_populates="usuario")
 
     # ↓ substitui o antigo ativo
     status           = db.Column(db.SmallInteger,

@@ -4,21 +4,17 @@ from flask import Blueprint, render_template, redirect, url_for, session, flash,
 from app.models.solicitacoes import Solicitacao, ItemSolicitacao
 from app.models.compras import Compra
 from app.extensions import db
-from app.utils.auth import login_required
+from app.utils.auth import login_required, ativo_required
 from datetime import datetime
 
 compras_bp = Blueprint("compras", __name__)
 
 PERFIS_COMPRADOR = {"comprador", "administrador", "gerente", "diretor"}
 
-
 @compras_bp.route("/compras")
 @login_required
+@ativo_required
 def lista_compras():
-    """
-    Lista todas as solicitações que estão no status 'aprovada'.
-    O comprador deve clicar em "Ver Mais" para preencher os dados da compra.
-    """
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_COMPRADOR:
         flash("Acesso negado.", "danger")
@@ -30,23 +26,17 @@ def lista_compras():
 
 @compras_bp.route("/compras/detalhes/<int:solicitacao_id>", methods=["GET", "POST"])
 @login_required
+@ativo_required
 def compra_detalhes(solicitacao_id):
-    """
-    Exibe todos os dados da solicitação e um formulário para preencher
-    os detalhes da compra.
-    Só ao submeter (POST) é que criamos as entradas em `compras`.
-    """
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_COMPRADOR:
         flash("Acesso negado.", "danger")
         return redirect(url_for("main.dashboard"))
 
-    # Em GET: carrega a Solicitação (ela já existe) e mostra o formulário vazio
     solicitacao = Solicitacao.query.get_or_404(solicitacao_id)
     itens = ItemSolicitacao.query.filter_by(solicitacao_id=solicitacao.id).all()
 
     if request.method == "POST":
-        # 1) ler todos os campos vindos do formulário:
         forma_pagamento = request.form.get("forma_pagamento") or ""
         valor_total = request.form.get("valor_total") or "0"
         parcelamento = request.form.get("parcelamento") or None
@@ -63,11 +53,7 @@ def compra_detalhes(solicitacao_id):
             else None
         )
 
-        # 2) para cada item dessa solicitação, vamos criar uma linha em Compra.
-        #    Se preferir agrupar tudo em uma única tabela "Pedido", basta criar um registro intermediário,
-        #    mas aqui seguimos o model atual de 'Compra' que é 1 compra ↔ 1 item.
         for item in itens:
-            # ler senha de recebimento individual, se houver:
             senha_field = f"senha_recebimento_item_{item.id}"
             senha_recebimento = request.form.get(senha_field) or ""
 
@@ -90,7 +76,6 @@ def compra_detalhes(solicitacao_id):
             )
             db.session.add(nova_compra)
 
-        # 3) depois de criar todas as linhas em Compra, atualiza o status da Solicitação para 'comprada':
         solicitacao.status = "comprada"
         db.session.commit()
 
@@ -100,7 +85,6 @@ def compra_detalhes(solicitacao_id):
         )
         return redirect(url_for("compras.lista_compras"))
 
-    # GET: exibir template com dados da solicitação + itens + formulario vazio
     return render_template(
         "compras/detalhes.html",
         solicitacao=solicitacao,

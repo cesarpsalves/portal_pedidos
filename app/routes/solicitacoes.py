@@ -1,26 +1,16 @@
-# app/routes/solicitacoes.py
+# app/routes/solicitacoes.py (versão ajustada com proteção de acesso completa)
 
 import os
 import io
 from datetime import datetime
 
 from flask import (
-    Blueprint,
-    render_template,
-    request,
-    redirect,
-    url_for,
-    session,
-    flash,
-    send_from_directory,
-    abort,
+    Blueprint, render_template, request, redirect, url_for,
+    session, flash, send_from_directory, abort
 )
 from sqlalchemy.orm import joinedload
 
-# Mantém o seu decorator de login
-from app.utils.auth import login_required
-
-# Importa nossa validação de CPF e a função de fuzzy matching
+from app.utils.auth import login_required, ativo_required, perfil_requerido
 from app.utils.validators import validar_cpf, encontrar_melhor_correspondencia
 
 from app.extensions import db
@@ -28,11 +18,10 @@ from app.models.solicitacoes import Solicitacao, ItemSolicitacao
 from app.models.unidades import Unidade
 from app.models.empresas import Empresa
 
-import pandas as pd  # para ler o Excel na importação
+import pandas as pd
 
 solicitacoes_bp = Blueprint("solicitacoes", __name__)
 
-# Lista estática de produtos “oficiais” para autocomplete + fuzzy matching
 TERMOS_OFICIAIS_PRODUTOS = [
     "AIRFRYER FRITADEIRA ELÉTRICA",
     "ASPIRADOR ROBÔ",
@@ -53,6 +42,8 @@ TERMOS_OFICIAIS_PRODUTOS = [
 
 @solicitacoes_bp.route("/solicitacao/nova", methods=["GET", "POST"])
 @login_required
+@ativo_required
+@perfil_requerido("solicitante", "administrador")
 def nova_solicitacao():
     if request.method == "POST":
         usuario_id = session.get("usuario_id")
@@ -174,6 +165,7 @@ def nova_solicitacao():
 
 @solicitacoes_bp.route("/solicitacoes")
 @login_required
+@ativo_required
 def lista_solicitacoes():
     usuario_id = session.get("usuario_id")
     tipo_usuario = session.get("usuario_tipo")
@@ -199,6 +191,7 @@ def lista_solicitacoes():
 
 @solicitacoes_bp.route("/solicitacao/<int:id>")
 @login_required
+@ativo_required
 def ver_solicitacao(id):
     solicitacao = Solicitacao.query.get_or_404(id)
     tipo_usuario = session.get("usuario_tipo")
@@ -221,6 +214,8 @@ def ver_solicitacao(id):
 
 @solicitacoes_bp.route("/solicitacao/download_template/<tipo>")
 @login_required
+@ativo_required
+@perfil_requerido("solicitante", "administrador")
 def download_template(tipo):
     """
     Retorna o arquivo modelo .xlsx para o usuário baixar.
@@ -243,6 +238,8 @@ def download_template(tipo):
 
 @solicitacoes_bp.route("/solicitacao/importar", methods=["GET", "POST"])
 @login_required
+@ativo_required
+@perfil_requerido("solicitante", "administrador")
 def importar_solicitacao():
     """
     Rota para importar solicitação via planilha Excel.

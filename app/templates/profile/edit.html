@@ -1,31 +1,52 @@
 {% extends 'base.html' %}
+
 {% block title %}Editar Perfil{% endblock %}
 
 {% block content %}
-<h2>Editar Perfil</h2>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/perfil.css') }}">
+<script src="{{ url_for('static', filename='js/upload_image.js') }}"></script> <!-- Link para o script JS externo -->
 
-<form method="POST" action="{{ url_for('profile.edit') }}">
-    {{ csrf_token() }}
-    <div>
-        <label for="nome">Nome:</label><br>
-        <input id="nome" name="nome" value="{{ user.nome }}" required>
-    </div>
-    <div>
-        <label for="email_principal">E-mail de Login:</label><br>
-        <input id="email_principal" name="email_principal" value="{{ user.email_principal }}" required>
-    </div>
-    <div>
-        <label for="foto_url">URL da Foto:</label><br>
-        <input id="foto_url" name="foto_url" value="{{ user.foto_url }}">
-    </div>
-    <div>
-        <label for="email_empresa">E-mail da Empresa (para ativação):</label><br>
-        <input id="email_empresa" name="email_empresa" value="{{ user.email_empresa }}">
-    </div>
-    <br>
-    <button type="submit">Salvar alterações</button>
-</form>
+<div class="perfil-editar-container">
+    <h2>Editar Perfil</h2>
 
-<br>
-<a href="{{ url_for('profile.view') }}">← Voltar</a>
+    <form method="POST" class="perfil-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+            <label for="nome">Nome completo:</label>
+            <input type="text" id="nome" name="nome" value="{{ user.nome }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email_principal">E-mail de login:</label>
+            <input type="email" id="email_principal" name="email_principal" value="{{ user.email_principal }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email_empresa">E-mail da empresa:</label>
+            <input type="email" id="email_empresa" name="email_empresa" value="{{ user.email_empresa or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="foto">Foto de perfil (Upload de Imagem):</label>
+            <input type="file" id="foto" name="foto" accept="image/*" onchange="previewImage(event)">
+        </div>
+
+        {% if user.foto_url %}
+        <div class="form-group">
+            <label>Prévia:</label>
+            <div class="foto-previa">
+                <img id="foto-preview" src="{{ user.foto_url }}" alt="Prévia da Foto"
+                    style="width: 150px; height: 150px; object-fit: cover;">
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn-salvar">Salvar Alterações</button>
+            <a href="{{ url_for('profile.view') }}" class="btn-cancelar">Cancelar</a>
+        </div>
+    </form>
+</div>
+
 {% endblock %}

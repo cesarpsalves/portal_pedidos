@@ -1,72 +1,94 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block title %}Gerenciar Usuários{% endblock %}
-{% block content %}
 
+{% block content %}
 <h2>Gerenciar Usuários</h2>
 
-{# Flash messages #}
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-<ul class="flash-messages">
-    {% for category, message in messages %}
-    <li class="{{ category }}">{{ message }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-{% endwith %}
-
-<table border="1" cellpadding="8" cellspacing="0">
+<table border="1" cellpadding="5" cellspacing="0">
     <thead>
         <tr>
-            <th>ID</th>
             <th>Nome</th>
-            <th>E-mail (login)</th>
-            <th>E-mail Empresa</th>
+            <th>E-mail</th>
+            <th>Unidade</th>
+            <th>Tipo</th>
+            <th>Perfis Atuais</th>
             <th>Status</th>
-            <th>Perfis</th>
-            <th>Ação</th>
+            <th>Ações</th>
         </tr>
     </thead>
     <tbody>
         {% for usuario in usuarios %}
         <tr>
-            <td>{{ usuario.id }}</td>
-            <td>{{ usuario.nome }}</td>
-            <td>{{ usuario.email_principal }}</td>
-            <td>{{ usuario.email_empresa or '–' }}</td>
-            <td>
-                {% if usuario.ativo %}
-                <span style="color:green">Ativo</span>
-                {% else %}
-                <span style="color:orange">Pendente</span>
-                {% endif %}
-            </td>
-            <td>{{ usuario.perfis }}</td>
-            <td>
-                <form method="POST" action="{{ url_for('admin.atualizar_perfis') }}">
-                    {{ csrf_token() }}
-                    <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                    <select name="perfis" multiple size="5">
-                        {% set opcoes = ['solicitante','aprovador','comprador',
-                        'recebedor','tributario','financeiro',
-                        'administrador','gerente','diretor'] %}
-                        {% set perfis_usuario = usuario.perfis.split(',') %}
-                        {% for perfil in opcoes %}
-                        <option value="{{ perfil }}" {% if perfil in perfis_usuario %}selected{% endif %}>
-                            {{ perfil }}
-                        </option>
+            <form method="POST" action="{{ url_for('admin.atualizar_perfis') }}">
+                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                <td>{{ usuario.nome }}</td>
+                <td>{{ usuario.email_principal }}</td>
+                <td>
+                    {% if meu_tipo in ["aprovador", "comprador", "tributario", "financeiro", "gerente", "diretor"] %}
+                    <select name="unidade_id">
+                        {% for unidade in unidades %}
+                        <option value="{{ unidade.id }}" {% if usuario.unidade_id==unidade.id %}selected{% endif %}>{{
+                            unidade.nome }}</option>
                         {% endfor %}
                     </select>
-                    <button type="submit">Atualizar</button>
-                </form>
-            </td>
+                    {% else %}
+                    {{ usuario.unidade.nome }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if meu_tipo in ["gerente", "diretor"] %}
+                    <select name="tipo">
+                        <option value="solicitante" {% if usuario.tipo=="solicitante" %}selected{% endif %}>Solicitante
+                        </option>
+                        <option value="comprador" {% if usuario.tipo=="comprador" %}selected{% endif %}>Comprador
+                        </option>
+                        <option value="aprovador" {% if usuario.tipo=="aprovador" %}selected{% endif %}>Aprovador
+                        </option>
+                        <option value="recebedor" {% if usuario.tipo=="recebedor" %}selected{% endif %}>Recebedor
+                        </option>
+                        <option value="tributario" {% if usuario.tipo=="tributario" %}selected{% endif %}>Tributário
+                        </option>
+                        <option value="financeiro" {% if usuario.tipo=="financeiro" %}selected{% endif %}>Financeiro
+                        </option>
+                        <option value="administrador" {% if usuario.tipo=="administrador" %}selected{% endif %}>
+                            Administrador</option>
+                        <option value="gerente" {% if usuario.tipo=="gerente" %}selected{% endif %}>Gerente</option>
+                        <option value="diretor" {% if usuario.tipo=="diretor" %}selected{% endif %}>Diretor</option>
+                    </select>
+                    {% else %}
+                    {{ usuario.tipo }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% for perfil in allowed_perfis %}
+                    <label style="display:block;">
+                        <input type="checkbox" name="perfis" value="{{ perfil }}" {% if perfil in
+                            usuario.perfis.split(',') %}checked{% endif %}>
+                        {{ perfil }}
+                    </label>
+                    {% endfor %}
+                </td>
+                <td>
+                    {% if meu_tipo in ["aprovador", "comprador", "tributario", "financeiro", "gerente", "diretor"] %}
+                    <select name="status">
+                        <option value="0" {% if usuario.status==0 %}selected{% endif %}>Inativo</option>
+                        <option value="1" {% if usuario.status==1 %}selected{% endif %}>Ativo</option>
+                        <option value="2" {% if usuario.status==2 %}selected{% endif %}>Aguardando</option>
+                    </select>
+                    {% else %}
+                    {{ usuario.status }}
+                    {% endif %}
+                </td>
+                <td>
+                    <button type="submit"
+                        onclick="return confirm('Tem certeza que deseja salvar as alterações?')">Atualizar</button>
+                </td>
+            </form>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 
-<br>
-<a href="{{ url_for('main.dashboard') }}">← Voltar ao painel</a>
-
+<p><a href="{{ url_for('main.dashboard') }}">← Voltar ao Dashboard</a></p>
 {% endblock %}

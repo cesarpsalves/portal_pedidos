@@ -3,14 +3,14 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for
 from app.extensions import db
 from app.models.solicitacoes import Solicitacao
-from app.utils.auth import login_required
+from app.utils.auth import login_required, ativo_required
 from datetime import datetime
 
 historico_bp = Blueprint("historico", __name__)
 
-
 @historico_bp.route("/historico")
 @login_required
+@ativo_required
 def historico_solicitacoes():
     usuario_id = session.get("usuario_id")
     tipo_usuario = session.get("usuario_tipo")

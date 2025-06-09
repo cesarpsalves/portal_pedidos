@@ -3,20 +3,17 @@
 from flask import Blueprint, render_template, redirect, url_for, session, flash, request
 from app.models.solicitacoes import Solicitacao, ItemSolicitacao
 from app.extensions import db
-from app.utils.auth import login_required
+from app.utils.auth import login_required, ativo_required
 
 aprovacoes_bp = Blueprint("aprovacoes", __name__)
 
-# Perfis autorizados a aprovar ou rejeitar
 PERFIS_APROVACAO = {"aprovador", "administrador", "gerente", "diretor"}
 
 
 @aprovacoes_bp.route("/aprovacoes")
 @login_required
+@ativo_required
 def listar_solicitacoes():
-    """
-    Lista apenas as solicitações que estão no status 'pendente'.
-    """
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Acesso não autorizado.", "danger")
@@ -32,11 +29,8 @@ def listar_solicitacoes():
 
 @aprovacoes_bp.route("/aprovacoes/aprovar/<int:id>", methods=["POST"])
 @login_required
+@ativo_required
 def aprovar_solicitacao(id):
-    """
-    Quando o formulários de aprovação for submetido, este endpoint
-    carrega a Solicitação pelo ID, marca como 'aprovada' e faz commit.
-    """
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Você não tem permissão para aprovar.", "danger")
@@ -53,11 +47,8 @@ def aprovar_solicitacao(id):
 
 @aprovacoes_bp.route("/aprovacoes/rejeitar/<int:id>", methods=["POST"])
 @login_required
+@ativo_required
 def rejeitar_solicitacao(id):
-    """
-    Quando o formulário de rejeição for submetido, grava o motivo em `observacao`
-    e altera o status para 'rejeitada'.
-    """
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Você não tem permissão para rejeitar.", "danger")
@@ -77,15 +68,10 @@ def rejeitar_solicitacao(id):
     return redirect(url_for("aprovacoes.listar_solicitacoes"))
 
 
-@aprovacoes_bp.route(
-    "/aprovacoes/detalhes/<int:solicitacao_id>", methods=["GET", "POST"]
-)
+@aprovacoes_bp.route("/aprovacoes/detalhes/<int:solicitacao_id>", methods=["GET", "POST"])
 @login_required
+@ativo_required
 def detalhes_solicitacao(solicitacao_id):
-    """
-    Página de detalhe exclusiva para o aprovador. Exibe
-    todos os dados da solicitação e permite aprovar/rejeitar.
-    """
     tipo_usuario = session.get("usuario_tipo")
     if tipo_usuario not in PERFIS_APROVACAO:
         flash("Acesso não autorizado.", "danger")
@@ -93,7 +79,7 @@ def detalhes_solicitacao(solicitacao_id):
 
     solicitacao = Solicitacao.query.get_or_404(solicitacao_id)
     itens = ItemSolicitacao.query.filter_by(solicitacao_id=solicitacao.id).all()
-    anexos = solicitacao.anexos  # caso você tenha um relacionamento AnexoSolicitacao
+    anexos = solicitacao.anexos
 
     if request.method == "POST":
         acao = request.form.get("acao")

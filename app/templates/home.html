@@ -1,9 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Página Inicial{% endblock %}
+
 {% block content %}
-<h2>Página Inicial</h2>
-<p>Bem‐vindo ao Portal de Pedidos! Use o menu abaixo para navegar:</p>
+<h2>Bem-vindo ao Portal de Pedidos</h2>
+
+<p>Este é o ponto de entrada para solicitações de compras, acompanhamentos, aprovações e muito mais.</p>
+<p>Escolha uma das opções abaixo para começar:</p>
 
 <ul>
-    <li><a href="{{ url_for('auth.login') }}">Área de Login</a></li>
-    <li><a href="{{ url_for('auth.cadastro') }}">Cadastrar‐se</a></li>
+    <li><a href="{{ url_for('auth.login') }}">🔐 Acessar minha conta</a></li>
+    <li><a href="{{ url_for('auth.cadastro') }}">📝 Cadastrar nova conta</a></li>
 </ul>
 {% endblock %}
