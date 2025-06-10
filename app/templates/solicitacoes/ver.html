@@ -1,16 +1,15 @@
-{# templates/solicitacoes/ver.html #}
 {% extends 'base.html' %}
 
+{% block title %}Detalhes da Solicitação{% endblock %}
+
 {% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Solicitação #{{ solicitacao.id }}</h2>
+        <button class="btn btn-outline-primary btn-sm" onclick="copiarWhatsApp()">📋 Copiar para WhatsApp</button>
+    </div>
 
-<h2>Detalhes da Solicitação #{{ solicitacao.id }}</h2>
-
-<!-- Botão de cópia para WhatsApp -->
-<button onclick="copiarWhatsApp()">📋 Copiar para WhatsApp</button>
-<br><br>
-
-<!-- Texto oculto formatado para WhatsApp -->
-<textarea id="textoWhatsapp" style="display: none;">
+    <textarea id="textoWhatsapp" style="display: none;">
 *Solicitação de Compra*
 
 *Empresa:* {{ solicitacao.empresa_solicitante.nome if solicitacao.empresa_solicitante else '---' }}
@@ -26,83 +25,79 @@
 {% for item in itens %}
 - {{ item.quantidade }}x {{ item.nome_produto }}
 {% endfor %}
-</textarea>
+  </textarea>
 
-<ul>
-    <li><strong>Empresa:</strong>
-        {{ solicitacao.empresa_solicitante.nome if solicitacao.empresa_solicitante else '---' }}
-    </li>
-    <li><strong>Unidade:</strong>
-        {{ solicitacao.unidade.nome if solicitacao.unidade else '---' }}
-    </li>
-    <li><strong>Solicitante:</strong> {{ solicitacao.usuario.nome }}</li>
-    <li><strong>Finalidade:</strong> {{ solicitacao.finalidade }}</li>
-    <li><strong>Centro de Custo:</strong> {{ solicitacao.centro_custo or '---' }}</li>
-    <li><strong>Tipo de Recebimento:</strong> {{ solicitacao.tipo_recebimento }}</li>
-    <li><strong>Status:</strong> {{ solicitacao.status }}</li>
-    <li><strong>Prazo Limite:</strong>
-        {{ solicitacao.prazo_limite.strftime('%d/%m/%Y') if solicitacao.prazo_limite else '---' }}
-    </li>
-</ul>
+    <ul class="list-group mb-4">
+        <li class="list-group-item"><strong>Empresa:</strong> {{ solicitacao.empresa_solicitante.nome if
+            solicitacao.empresa_solicitante else '---' }}</li>
+        <li class="list-group-item"><strong>Unidade:</strong> {{ solicitacao.unidade.nome if solicitacao.unidade else
+            '---' }}</li>
+        <li class="list-group-item"><strong>Solicitante:</strong> {{ solicitacao.usuario.nome }}</li>
+        <li class="list-group-item"><strong>Finalidade:</strong> {{ solicitacao.finalidade }}</li>
+        <li class="list-group-item"><strong>Centro de Custo:</strong> {{ solicitacao.centro_custo or '---' }}</li>
+        <li class="list-group-item"><strong>Tipo de Recebimento:</strong> {{ solicitacao.tipo_recebimento }}</li>
+        <li class="list-group-item"><strong>Status:</strong> {{ solicitacao.status }}</li>
+        <li class="list-group-item"><strong>Prazo Limite:</strong> {{ solicitacao.prazo_limite.strftime('%d/%m/%Y') if
+            solicitacao.prazo_limite else '---' }}</li>
+    </ul>
 
-<h3>Itens Solicitados</h3>
-<table border="1" cellpadding="5" cellspacing="0">
-    <thead>
-        <tr>
-            <th>Produto</th>
-            <th>Técnico</th>
-            <th>Qtd</th>
-            <th>Voltagem</th>
-            <th>Especificações</th>
-            <th>Link</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in itens %}
-        <tr>
-            <td>{{ item.nome_produto }}</td>
-            <td>{{ item.nome_tecnico }}</td>
-            <td>{{ item.quantidade }}</td>
-            <td>{{ item.voltagem }}</td>
-            <td>{{ item.especificacoes }}</td>
-            <td>
-                {% if item.link %}
-                <a href="{{ item.link }}" target="_blank">Link</a>
-                {% else %}
-                ---
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <h4>Itens Solicitados</h4>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered table-sm align-middle">
+            <thead class="table-light text-center">
+                <tr>
+                    <th>Produto</th>
+                    <th>Técnico</th>
+                    <th>Qtd</th>
+                    <th>Voltagem</th>
+                    <th>Especificações</th>
+                    <th>Link</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in itens %}
+                <tr>
+                    <td>{{ item.nome_produto }}</td>
+                    <td>{{ item.nome_tecnico }}</td>
+                    <td class="text-center">{{ item.quantidade }}</td>
+                    <td>{{ item.voltagem }}</td>
+                    <td>{{ item.especificacoes }}</td>
+                    <td>
+                        {% if item.link %}
+                        <a href="{{ item.link }}" target="_blank" class="btn btn-sm btn-outline-secondary">Ver</a>
+                        {% else %}
+                        ---
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-<h3>Aprovar ou Rejeitar</h3>
+    <div class="mb-4">
+        <h4>Aprovar ou Rejeitar</h4>
 
-{# Formulário de Aprovação #}
-<form method="POST" action="{{ url_for('aprovacoes.aprovar_solicitacao', id=solicitacao.id) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" style="background-color: #4CAF50; color: white; padding: 8px 16px;">
-        Aprovar
-    </button>
-</form>
+        <div class="d-flex gap-3 flex-column flex-md-row">
+            <form method="POST" action="{{ url_for('aprovacoes.aprovar_solicitacao', id=solicitacao.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-success">✔️ Aprovar</button>
+            </form>
 
-<br>
+            <form method="POST" action="{{ url_for('aprovacoes.rejeitar_solicitacao', id=solicitacao.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-2">
+                    <label for="motivo" class="form-label">Motivo da Rejeição:</label>
+                    <textarea name="motivo" id="motivo" class="form-control" rows="3"
+                        placeholder="Descreva aqui o motivo se for rejeitar..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger">❌ Rejeitar</button>
+            </form>
+        </div>
+    </div>
 
-{# Formulário de Rejeição #}
-<form method="POST" action="{{ url_for('aprovacoes.rejeitar_solicitacao', id=solicitacao.id) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label for="motivo">Motivo da Rejeição:</label><br>
-    <textarea name="motivo" id="motivo" rows="3" cols="50"
-        placeholder="Descreva aqui o motivo se for rejeitar..."></textarea>
-    <br>
-    <button type="submit" style="background-color: #f44336; color: white; padding: 8px 16px;">
-        Rejeitar
-    </button>
-</form>
-
-<br>
-<a href="{{ url_for('aprovacoes.listar_solicitacoes') }}">&larr; Voltar à lista</a>
+    <a href="{{ url_for('solicitacoes.lista_solicitacoes') }}" class="btn btn-secondary">&larr; Voltar à lista</a>
+</div>
 
 <script>
     function copiarWhatsApp() {
@@ -114,5 +109,4 @@
         alert("Texto copiado para o WhatsApp!");
     }
 </script>
-
 {% endblock %}

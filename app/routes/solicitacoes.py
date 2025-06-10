@@ -192,6 +192,7 @@ def lista_solicitacoes():
 @solicitacoes_bp.route("/solicitacao/<int:id>")
 @login_required
 @ativo_required
+@perfil_requerido("aprovador", "gerente", "administrador")
 def ver_solicitacao(id):
     solicitacao = Solicitacao.query.get_or_404(id)
     tipo_usuario = session.get("usuario_tipo")

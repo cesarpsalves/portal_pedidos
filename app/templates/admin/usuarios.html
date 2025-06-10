@@ -3,92 +3,130 @@
 {% block title %}Gerenciar Usuários{% endblock %}
 
 {% block content %}
-<h2>Gerenciar Usuários</h2>
+<div class="container mt-5">
+    <h2 class="mb-4">Gerenciar Usuários</h2>
 
-<table border="1" cellpadding="5" cellspacing="0">
-    <thead>
-        <tr>
-            <th>Nome</th>
-            <th>E-mail</th>
-            <th>Unidade</th>
-            <th>Tipo</th>
-            <th>Perfis Atuais</th>
-            <th>Status</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for usuario in usuarios %}
-        <tr>
-            <form method="POST" action="{{ url_for('admin.atualizar_perfis') }}">
-                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                <td>{{ usuario.nome }}</td>
-                <td>{{ usuario.email_principal }}</td>
-                <td>
-                    {% if meu_tipo in ["aprovador", "comprador", "tributario", "financeiro", "gerente", "diretor"] %}
-                    <select name="unidade_id">
-                        {% for unidade in unidades %}
-                        <option value="{{ unidade.id }}" {% if usuario.unidade_id==unidade.id %}selected{% endif %}>{{
-                            unidade.nome }}</option>
-                        {% endfor %}
-                    </select>
-                    {% else %}
-                    {{ usuario.unidade.nome }}
-                    {% endif %}
-                </td>
-                <td>
-                    {% if meu_tipo in ["gerente", "diretor"] %}
-                    <select name="tipo">
-                        <option value="solicitante" {% if usuario.tipo=="solicitante" %}selected{% endif %}>Solicitante
-                        </option>
-                        <option value="comprador" {% if usuario.tipo=="comprador" %}selected{% endif %}>Comprador
-                        </option>
-                        <option value="aprovador" {% if usuario.tipo=="aprovador" %}selected{% endif %}>Aprovador
-                        </option>
-                        <option value="recebedor" {% if usuario.tipo=="recebedor" %}selected{% endif %}>Recebedor
-                        </option>
-                        <option value="tributario" {% if usuario.tipo=="tributario" %}selected{% endif %}>Tributário
-                        </option>
-                        <option value="financeiro" {% if usuario.tipo=="financeiro" %}selected{% endif %}>Financeiro
-                        </option>
-                        <option value="administrador" {% if usuario.tipo=="administrador" %}selected{% endif %}>
-                            Administrador</option>
-                        <option value="gerente" {% if usuario.tipo=="gerente" %}selected{% endif %}>Gerente</option>
-                        <option value="diretor" {% if usuario.tipo=="diretor" %}selected{% endif %}>Diretor</option>
-                    </select>
-                    {% else %}
-                    {{ usuario.tipo }}
-                    {% endif %}
-                </td>
-                <td>
-                    {% for perfil in allowed_perfis %}
-                    <label style="display:block;">
-                        <input type="checkbox" name="perfis" value="{{ perfil }}" {% if perfil in
-                            usuario.perfis.split(',') %}checked{% endif %}>
-                        {{ perfil }}
-                    </label>
-                    {% endfor %}
-                </td>
-                <td>
-                    {% if meu_tipo in ["aprovador", "comprador", "tributario", "financeiro", "gerente", "diretor"] %}
-                    <select name="status">
-                        <option value="0" {% if usuario.status==0 %}selected{% endif %}>Inativo</option>
-                        <option value="1" {% if usuario.status==1 %}selected{% endif %}>Ativo</option>
-                        <option value="2" {% if usuario.status==2 %}selected{% endif %}>Aguardando</option>
-                    </select>
-                    {% else %}
-                    {{ usuario.status }}
-                    {% endif %}
-                </td>
-                <td>
-                    <button type="submit"
-                        onclick="return confirm('Tem certeza que deseja salvar as alterações?')">Atualizar</button>
-                </td>
-            </form>
-        </tr>
-        {% endfor %}
+    <!-- Filtro de inativos -->
+    <form method="get" class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="mostrar_inativos" value="1" id="checkInativos" {% if
+            request.args.get('mostrar_inativos') %}checked{% endif %} onchange="this.form.submit()">
+        <label class="form-check-label" for="checkInativos">
+            Mostrar usuários inativos
+        </label>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr class="text-center">
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Unidade</th>
+                    <th>Tipo</th>
+                    <th>Status</th>
+                    <th>Perfis Atuais</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usuario in usuarios %}
+                {% if usuario.status != 0 or request.args.get('mostrar_inativos') %}
+                <tr>
+                    <!-- Atualização -->
+                    <form method="POST" action="{{ url_for('admin.atualizar_usuario') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                        <td>{{ usuario.nome }}</td>
+                        <td>{{ usuario.email_principal }}</td>
+
+                        <td>
+                            <select name="unidade_id" class="form-select form-select-sm">
+                                <option value="">–</option>
+                                {% for unidade in unidades %}
+                                <option value="{{ unidade.id }}" {% if usuario.unidade_id==unidade.id %}selected{% endif
+                                    %}>
+                                    {{ unidade.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+
+                        <td>
+                            {% if meu_tipo in ['gerente', 'diretor', 'administrador'] %}
+                            <select name="tipo" class="form-select form-select-sm">
+                                {% for tipo in ['solicitante', 'aprovador', 'comprador', 'recebedor', 'tributario',
+                                'financeiro', 'gerente', 'diretor', 'administrador'] %}
+                                <option value="{{ tipo }}" {% if usuario.tipo==tipo %}selected{% endif %}>{{ tipo }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% else %}
+                            <span class="text-muted">{{ usuario.tipo }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if meu_tipo in ['aprovador', 'comprador', 'tributario', 'financeiro', 'gerente',
+                            'diretor', 'administrador'] %}
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="0" {% if usuario.status==0 %}selected{% endif %}>Inativo</option>
+                                <option value="1" {% if usuario.status==1 %}selected{% endif %}>Aguardando</option>
+                                <option value="2" {% if usuario.status==2 %}selected{% endif %}>Ativo</option>
+                            </select>
+                            {% else %}
+                            <span class="text-muted">
+                                {% if usuario.status == 0 %}Inativo{% elif usuario.status == 1 %}Aguardando{% else
+                                %}Ativo{% endif %}
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <td style="min-width: 180px;">
+                            {% if meu_tipo in ['gerente', 'diretor', 'administrador'] %}
+                            <div class="form-check">
+                                {% for perfil in allowed_perfis %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="perfis" value="{{ perfil }}"
+                                        id="perfil-{{ usuario.id }}-{{ perfil }}" {% if perfil in (usuario.perfis or ''
+                                        ).split(',') %}checked{% endif %}>
+                                    <label class="form-check-label small" for="perfil-{{ usuario.id }}-{{ perfil }}">
+                                        {{ perfil.title() }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="text-muted small">{{ usuario.perfis }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            <div class="d-grid gap-1">
+                                <button type="submit" class="btn btn-sm btn-success">Salvar</button>
+                    </form>
+
+                    <!-- Exclusão -->
+                    <form method="POST" action="{{ url_for('admin.excluir_usuario') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                        {% if meu_tipo == 'administrador' or (meu_tipo == 'diretor' and usuario.tipo != 'diretor') %}
+                        <button type="submit" name="excluir" value="1" class="btn btn-sm btn-outline-danger"
+                            onclick="return confirm('Tem certeza que deseja excluir {{ usuario.nome }}?')">
+                            Excluir
+                        </button>
+                        {% endif %}
+    </div>
+    </td>
+    </form>
+    </tr>
+    {% endif %}
+    {% endfor %}
     </tbody>
-</table>
+    </table>
+</div>
 
-<p><a href="{{ url_for('main.dashboard') }}">← Voltar ao Dashboard</a></p>
+<div class="mt-4">
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">&larr; Voltar ao Dashboard</a>
+</div>
+</div>
 {% endblock %}

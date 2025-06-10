@@ -1,65 +1,86 @@
-{# templates/solicitacoes/lista.html #}
 {% extends 'base.html' %}
+{% block title %}Minhas Solicitações{% endblock %}
+
 {% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Solicitações</h2>
 
-<h2>Minhas Solicitações</h2>
+    {% if solicitacoes %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>Empresa</th>
+                    <th>Finalidade</th>
+                    <th>Itens</th>
+                    <th>Unidade</th>
+                    <th>Recebimento</th>
+                    <th>Prazo</th>
+                    <th>Criado em</th>
+                    <th>Status</th>
 
-{% if solicitacoes %}
-<table border="1">
-    <thead>
-        <tr>
-            <th>Empresa Solicitante</th>
-            <th>Finalidade</th>
-            <th>Itens Solicitados</th>
-            <th>Unidade</th>
-            <th>Tipo de Recebimento</th>
-            <th>Prazo Limite</th>
-            <th>Criado em</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for s in solicitacoes %}
-        <tr>
-            <td>
-                {% if s.empresa_solicitante %}
-                {{ s.empresa_solicitante.nome }}
-                {% else %}
-                ---
-                {% endif %}
-            </td>
-            <td>{{ s.finalidade }}</td>
-            <td>
-                {# Monta um pequeno resumo dos primeiros 2 itens #}
-                {% set resumo = [] %}
-                {% for item in s.itens[:2] %}
-                {# Se o nome do produto tiver mais de 18 caracteres, trunca antes de um espaço #}
-                {% set nome_resumido =
-                (item.nome_produto if item.nome_produto|length <= 18 else item.nome_produto[:18].rsplit(' ', 1)[0] ~ '
-                    ...') %} {# Adiciona “quantidade x nome_resumido” ao array resumo #} {% set
-                    _=resumo.append(item.quantidade|string ~ 'x ' ~ nome_resumido) %} {% endfor %} {{ resumo|join(', ') }}
-                {% if s.itens|length > 2 %}, …{% endif %}
-            </td>
-            <td>{{ s.unidade.nome if s.unidade else ' ---' }}</td>
-            <td>{{ s.tipo_recebimento }}</td>
-            <td>
-                {{ s.prazo_limite.strftime('%d/%m/%Y') if s.prazo_limite else '---' }}
-            </td>
-            <td>{{ s.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
-            <td>
-                <a href="{{ url_for('solicitacoes.ver_solicitacao', id=s.id) }}">Ver</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>Você ainda não fez nenhuma solicitação.</p>
-{% endif %}
+                    {% if 'aprovador' in session.usuario_perfis or
+                    'gerente' in session.usuario_perfis or
+                    'administrador' in session.usuario_perfis %}
+                    <th>Solicitante</th>
+                    <th>Ações</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in solicitacoes %}
+                <tr>
+                    <td>{{ s.empresa_solicitante.nome if s.empresa_solicitante else '---' }}</td>
+                    <td>{{ s.finalidade }}</td>
+                    <td>
+                        {% set resumo = [] %}
+                        {% for item in s.itens[:2] %}
+                        {% set nome_resumido = item.nome_produto if item.nome_produto|length <= 18 else
+                            item.nome_produto[:18].rsplit(' ', 1)[0] ~ ' ...' %} {% set
+                            _=resumo.append(item.quantidade|string ~ 'x ' ~ nome_resumido) %} {% endfor %} {{
+                            resumo|join(', ') }}{% if s.itens|length > 2 %}, …{% endif %}
+                    </td>
+                    <td>{{ s.unidade.nome if s.unidade else ' ---' }}</td>
+                    <td>{{ s.tipo_recebimento }}</td>
+                    <td>{{ s.prazo_limite.strftime('%d/%m/%Y') if s.prazo_limite else '---' }}</td>
+                    <td>{{ s.criado_em|formatar_local }}</td>
+                    <td>
+                        {% if s.status %}
+                        <span class="badge bg-secondary">{{ s.status|capitalize }}</span>
+                        {% else %}
+                        <span class="text-muted">---</span>
+                        {% endif %}
+                    </td>
 
-<p>
-    <a href="{{ url_for('solicitacoes.nova_solicitacao') }}">Nova Solicitação</a> |
-    <a href="{{ url_for('main.dashboard') }}">← Voltar ao Dashboard</a>
-</p>
+                    {% if 'aprovador' in session.usuario_perfis or
+                    'gerente' in session.usuario_perfis or
+                    'administrador' in session.usuario_perfis %}
+                    <td>{{ s.usuario.nome if s.usuario else '---' }}</td>
+                    <td>
+                        <a href="{{ url_for('solicitacoes.ver_solicitacao', id=s.id) }}"
+                            class="btn btn-sm btn-outline-primary">
+                            Ver
+                        </a>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        Você ainda não fez nenhuma solicitação.
+    </div>
+    {% endif %}
 
+    <div class="mt-4 d-flex gap-2">
+        <a href="{{ url_for('solicitacoes.nova_solicitacao') }}" class="btn btn-success">
+            Nova Solicitação
+        </a>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+            ← Voltar ao Dashboard
+        </a>
+    </div>
+</div>
 {% endblock %}

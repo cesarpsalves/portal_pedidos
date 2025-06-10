@@ -1,0 +1,31 @@
+{# app/templates/auth/verify_code.html #}
+{% extends 'base.html' %}
+
+{% block title %}Verificar Código de Recuperação{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 480px;">
+    <h3 class="mb-4">Verificação de Código</h3>
+    <p>Digite o código de verificação enviado ao seu e-mail.</p>
+
+    <form method="POST" action="{{ url_for('auth.verify_code') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-3">
+            <label for="email" class="form-label">E-mail</label>
+            <input type="email" class="form-control" id="email" name="email" value="{{ email }}" readonly>
+        </div>
+
+        <div class="mb-3">
+            <label for="codigo" class="form-label">Código de Verificação</label>
+            <input type="text" class="form-control" id="codigo" name="codigo" maxlength="6" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Verificar</button>
+    </form>
+
+    <div class="text-center mt-3">
+        <a href="{{ url_for('auth.login') }}">← Voltar ao Login</a>
+    </div>
+</div>
+{% endblock %}

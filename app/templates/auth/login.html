@@ -2,38 +2,69 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-<h2>Entrar</h2>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h4 class="text-center mb-4">Entrar no Portal</h4>
 
-{# Mensagens flash #}
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-<ul class="flash-messages">
-    {% for category, msg in messages %}
-    <li class="{{ category }}">{{ msg|safe }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-{% endwith %}
+                    {# Flash messages #}
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    <div class="mb-3">
+                        {% for category, msg in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ msg|safe }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                aria-label="Fechar"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
 
-{# Formulário de login #}
-<form method="POST" action="{{ url_for('auth.login') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div>
-        <label for="email">E-mail:</label><br>
-        <input id="email" name="email" type="email" required value="{{ request.form.get('email','') }}">
+                    <form method="POST" action="{{ url_for('auth.login') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-mail</label>
+                            <input type="email" class="form-control" id="email" name="email" required
+                                value="{{ request.form.get('email','') }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="senha" class="form-label">Senha</label>
+                            <input type="password" class="form-control" id="senha" name="senha" required>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <a href="{{ url_for('auth.esqueci_senha') }}" class="small text-decoration-none">Esqueci
+                                minha senha</a>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary">Entrar</button>
+                        </div>
+
+                        <div class="text-center text-muted small">
+                            Ainda não tem conta?
+                            <a href="{{ url_for('auth.cadastro') }}" class="text-decoration-none">Cadastre-se aqui</a>
+                        </div>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <div class="text-center">
+                        <p class="mb-2">Ou entre com:</p>
+                        <a href="{{ url_for('google.login') }}" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-google me-2"></i> Entrar com Google
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
-    <div>
-        <label for="senha">Senha:</label><br>
-        <input id="senha" name="senha" type="password" required>
-    </div>
-    <br>
-    <button type="submit">Entrar</button>
-</form>
-
-<p>Ainda não tem conta? <a href="{{ url_for('auth.cadastro') }}">Cadastre-se aqui</a>.</p>
-
-<hr>
-
-<p>OU</p>
-<p><a href="{{ url_for('google.login') }}">Entrar com Google</a></p>
+</div>
 {% endblock %}

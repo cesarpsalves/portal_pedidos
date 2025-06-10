@@ -16,7 +16,7 @@
     {% set roles = session.get("usuario_perfis", "").split(",") %}
 
     <ul>
-        <li><a href="{{ url_for('solicitacoes.lista_solicitacoes') }}">📄 Minhas Solicitações</a></li>
+        <li><a href="{{ url_for('solicitacoes.lista_solicitacoes') }}">📄 Solicitações</a></li>
 
         {% if "aprovador" in roles or "administrador" in roles or "gerente" in roles or "diretor" in roles %}
         <li><a href="{{ url_for('aprovacoes.listar_solicitacoes') }}">✅ Aprovar Solicitações</a></li>

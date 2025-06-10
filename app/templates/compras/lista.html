@@ -1,71 +1,68 @@
-{# templates/compras/lista.html #}
 {% extends 'base.html' %}
 {% block title %}Solicitações Aprovadas{% endblock %}
 
 {% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Solicitações Aprovadas para Compra</h2>
 
-<h2>Solicitações Aprovadas para Compra</h2>
-
-{% if solicitacoes %}
-<table border="1" cellpadding="8" cellspacing="0">
-    <thead>
-        <tr>
-            <th>Empresa Solicitante</th>
-            <th>Finalidade</th>
-            <th>Itens</th>
-            <th>Unidade</th>
-            <th>Tipo de Recebimento</th>
-            <th>Prazo Limite</th>
-            <th>Solicitante</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for solicitacao in solicitacoes %}
-        <tr>
-            <td>
-                {{ solicitacao.empresa_solicitante.nome
-                if solicitacao.empresa_solicitante else '---' }}
-            </td>
-            <td>{{ solicitacao.finalidade }}</td>
-            <td>
-                {# Monta resumo dos primeiros dois itens, como em outras telas #}
-                {% set resumo = [] %}
-                {% for item in solicitacao.itens[:2] %}
-                {% set nome_limpo = item.nome_produto.strip() %}
-                {% if nome_limpo|length > 18 %}
-                {% set nome_curto = nome_limpo[:18].rsplit(' ', 1)[0] ~ '...' %}
-                {% else %}
-                {% set nome_curto = nome_limpo %}
-                {% endif %}
-                {% set entrada = item.quantidade ~ 'x ' ~ nome_curto %}
-                {% set _ = resumo.append(entrada) %}
+    {% if solicitacoes %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>Empresa</th>
+                    <th>Finalidade</th>
+                    <th>Itens</th>
+                    <th>Unidade</th>
+                    <th>Recebimento</th>
+                    <th>Prazo Limite</th>
+                    <th>Solicitante</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in solicitacoes %}
+                <tr>
+                    <td>{{ s.empresa_solicitante.nome if s.empresa_solicitante else '---' }}</td>
+                    <td>{{ s.finalidade }}</td>
+                    <td>
+                        {% set resumo = [] %}
+                        {% for item in s.itens[:2] %}
+                        {% set nome_limpo = item.nome_produto.strip() %}
+                        {% if nome_limpo|length > 18 %}
+                        {% set nome_curto = nome_limpo[:18].rsplit(' ', 1)[0] ~ '...' %}
+                        {% else %}
+                        {% set nome_curto = nome_limpo %}
+                        {% endif %}
+                        {% set _ = resumo.append(item.quantidade ~ 'x ' ~ nome_curto) %}
+                        {% endfor %}
+                        {{ resumo | join(', ') }}{% if s.itens|length > 2 %}, …{% endif %}
+                    </td>
+                    <td>{{ s.unidade.nome if s.unidade else '---' }}</td>
+                    <td>{{ s.tipo_recebimento }}</td>
+                    <td>{{ s.prazo_limite.strftime('%d/%m/%Y') if s.prazo_limite else '---' }}</td>
+                    <td>{{ s.usuario.nome if s.usuario else '---' }}</td>
+                    <td>
+                        <a href="{{ url_for('compras.compra_detalhes', solicitacao_id=s.id) }}"
+                            class="btn btn-sm btn-outline-primary">
+                            Ver Mais
+                        </a>
+                    </td>
+                </tr>
                 {% endfor %}
-                {{ resumo | join(', ') }}{% if solicitacao.itens|length > 2 %}, …{% endif %}
-            </td>
-            <td>{{ solicitacao.unidade.nome if solicitacao.unidade else '---' }}</td>
-            <td>{{ solicitacao.tipo_recebimento }}</td>
-            <td>
-                {{ solicitacao.prazo_limite.strftime('%d/%m/%Y')
-                if solicitacao.prazo_limite else '---' }}
-            </td>
-            <td>
-                {{ solicitacao.usuario.nome if solicitacao.usuario else '---' }}
-            </td>
-            <td>
-                <a href="{{ url_for('compras.compra_detalhes', solicitacao_id=solicitacao.id) }}">
-                    <button>Ver Mais</button>
-                </a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>Não há solicitações aprovadas no momento.</p>
-{% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        Não há solicitações aprovadas no momento.
+    </div>
+    {% endif %}
 
-<br>
-<a href="{{ url_for('main.dashboard') }}">&larr; Voltar ao painel</a>
-
+    <div class="mt-4">
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+            ← Voltar ao painel
+        </a>
+    </div>
+</div>
 {% endblock %}

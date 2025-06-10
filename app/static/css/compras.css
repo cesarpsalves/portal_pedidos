@@ -1,0 +1,35 @@
+/* Responsividade para tabela de pacotes */
+#tabela-pacotes {
+    width: 100%;
+    table-layout: auto;
+    word-break: break-word;
+}
+
+#tabela-pacotes th,
+#tabela-pacotes td {
+    vertical-align: middle;
+    text-align: center;
+    padding: 0.5em;
+}
+
+@media (max-width: 768px) {
+
+    #tabela-pacotes th,
+    #tabela-pacotes td {
+        font-size: 0.9rem;
+        padding: 0.4em;
+    }
+
+    #tabela-pacotes input[type="text"],
+    #tabela-pacotes input[type="number"],
+    #tabela-pacotes input[type="date"],
+    #tabela-pacotes input[type="file"] {
+        width: 100%;
+        font-size: 0.9rem;
+    }
+
+    #btn-adicionar-pacote {
+        width: 100%;
+        margin-top: 0.5em;
+    }
+}

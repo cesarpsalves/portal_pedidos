@@ -1,118 +1,145 @@
-{# templates/solicitacoes/nova.html #}
 {% extends 'base.html' %}
 {% block title %}Nova Solicitação{% endblock %}
 
 {% block content %}
-<h2>Nova Solicitação</h2>
+<div class="container mt-4">
+    <h2 class="mb-4">Nova Solicitação</h2>
 
-<p>
-    <a href="{{ url_for('solicitacoes.importar_solicitacao') }}" class="botao-secundario">
-        ← Importar via Planilha
-    </a>
-</p>
+    <p>
+        <a href="{{ url_for('solicitacoes.importar_solicitacao') }}" class="btn btn-outline-secondary">
+            ← Importar via Planilha
+        </a>
+    </p>
 
-{# Exibe apenas mensagens relacionadas a nova solicitação #}
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-<ul class="flashes">
-    {% for category, message in messages %}
-    {% if category in ['sucesso_solicitacao', 'erro_solicitacao'] %}
-    <li class="flash-{{ category }}">{{ message }}</li>
-    {% endif %}
-    {% endfor %}
-</ul>
-{% endif %}
-{% endwith %}
-
-<form method="POST" action="{{ url_for('solicitacoes.nova_solicitacao') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-    <label for="empresa_solicitante_id">Empresa Solicitante:</label>
-    <select name="empresa_solicitante_id" id="empresa_solicitante_id" required>
-        <option value="">Selecione...</option>
-        {% for emp in empresas %}
-        <option value="{{ emp.id }}">{{ emp.nome }}</option>
-        {% endfor %}
-    </select>
-    <br><br>
-
-    <label for="finalidade">Finalidade (texto livre):</label><br>
-    <input type="text" name="finalidade" id="finalidade" required class="maiusculo" spellcheck="true">
-    <br><br>
-
-    <label for="centro_custo">Centro de Custo:</label>
-    <select name="centro_custo" id="centro_custo" required>
-        <option value="">Selecione...</option>
-        <option value="Brindes Promocionais - 2.2.04.006">Brindes Promocionais – 2.2.04.006</option>
-        <option value="Doação de Equipamentos - 2.2.04.014">Doação de Equipamentos – 2.2.04.014</option>
-        <option value="Outros">Outros (informe em Observações)</option>
-    </select>
-    <br><br>
-
-    <label for="unidade_id">Unidade:</label>
-    <select name="unidade_id" id="unidade_id" required>
-        <option value="">Selecione...</option>
-        {% for unidade in unidades %}
-        <option value="{{ unidade.id }}">{{ unidade.nome }}</option>
-        {% endfor %}
-    </select>
-    <br><br>
-
-    <label>Tipo de Recebimento:</label>
-    <input type="radio" name="recebimento" value="RETIRADA" id="opt-retirada">
-    <label for="opt-retirada">Retirada</label>
-    <input type="radio" name="recebimento" value="ENTREGA" id="opt-entrega" checked>
-    <label for="opt-entrega">Entrega</label>
-    <br><br>
-
-    <div id="campos-retirada" style="display: none;">
-        <label for="nome_retirada">Nome de quem irá retirar:</label><br>
-        <input type="text" name="nome_retirada" id="nome_retirada" class="maiusculo" spellcheck="true">
-        <br>
-        <label for="cpf_retirada">CPF de quem irá retirar:</label><br>
-        <input type="text" name="cpf_retirada" id="cpf_retirada" maxlength="14">
-    </div>
-    <br>
-
-    <label for="prazo_limite">Prazo Limite de Entrega:</label><br>
-    <input type="date" name="prazo_limite" id="prazo_limite" min="{{ hoje }}" required>
-    <br>
-    <small id="dias-restantes" style="color: #555;"></small>
-    <br><br>
-
-    <h3>Itens da Solicitação</h3>
-    <div id="items">
-        <div class="item">
-            <input type="text" name="nome_produto" placeholder="Nome do Produto" class="maiusculo"
-                list="produtos_sugeridos" autocomplete="off" spellcheck="false">
-            <datalist id="produtos_sugeridos">
-                {% for termo in termos_produto %}
-                <option value="{{ termo }}">
-                    {% endfor %}
-            </datalist>
-
-            <input type="text" name="nome_tecnico" placeholder="Nome Técnico" class="maiusculo" spellcheck="true">
-            <input type="text" name="quantidade" placeholder="Qtd">
-            <select name="voltagem">
-                <option value="">Voltagem</option>
-                <option value="110V">110V</option>
-                <option value="220V">220V</option>
-            </select>
-            <input type="text" name="especificacoes" placeholder="Especificações" class="maiusculo" spellcheck="true">
-            <input type="text" name="link" placeholder="Link">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="my-3">
+        {% for category, message in messages %}
+        {% if category in ['sucesso_solicitacao', 'erro_solicitacao'] %}
+        <div class="alert alert-{{ 'success' if category == 'sucesso_solicitacao' else 'danger' }}">
+            {{ message }}
         </div>
+        {% endif %}
+        {% endfor %}
     </div>
-    <button type="button" id="adicionarItem">+ Adicionar Item</button>
-    <br><br>
+    {% endif %}
+    {% endwith %}
 
-    <label for="observacao">Observações (se “Centro de Custo” for “Outros”, especifique):</label><br>
-    <textarea name="observacao" id="observacao" rows="3" cols="50" spellcheck="true"></textarea>
-    <br><br>
+    <form method="POST" action="{{ url_for('solicitacoes.nova_solicitacao') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <button type="submit">Enviar Solicitação</button>
-    <br><br>
-    <a href="{{ url_for('main.dashboard') }}">← Voltar ao Dashboard</a>
-</form>
+        <div class="mb-3">
+            <label for="empresa_solicitante_id" class="form-label">Empresa Solicitante</label>
+            <select name="empresa_solicitante_id" id="empresa_solicitante_id" class="form-select" required>
+                <option value="">Selecione...</option>
+                {% for emp in empresas %}
+                <option value="{{ emp.id }}">{{ emp.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="finalidade" class="form-label">Finalidade</label>
+            <input type="text" name="finalidade" id="finalidade" class="form-control maiusculo" required
+                spellcheck="true">
+        </div>
+
+        <div class="mb-3">
+            <label for="centro_custo" class="form-label">Centro de Custo</label>
+            <select name="centro_custo" id="centro_custo" class="form-select" required>
+                <option value="">Selecione...</option>
+                <option value="Brindes Promocionais - 2.2.04.006">Brindes Promocionais – 2.2.04.006</option>
+                <option value="Doação de Equipamentos - 2.2.04.014">Doação de Equipamentos – 2.2.04.014</option>
+                <option value="Outros">Outros (informe em Observações)</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="unidade_id" class="form-label">Unidade</label>
+            <select name="unidade_id" id="unidade_id" class="form-select" required>
+                <option value="">Selecione...</option>
+                {% for unidade in unidades %}
+                <option value="{{ unidade.id }}">{{ unidade.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Tipo de Recebimento</label><br>
+            <div class="form-check form-check-inline">
+                <input type="radio" name="recebimento" value="RETIRADA" id="opt-retirada" class="form-check-input">
+                <label for="opt-retirada" class="form-check-label">Retirada</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input type="radio" name="recebimento" value="ENTREGA" id="opt-entrega" class="form-check-input"
+                    checked>
+                <label for="opt-entrega" class="form-check-label">Entrega</label>
+            </div>
+        </div>
+
+        <div id="campos-retirada" class="mb-3" style="display: none;">
+            <label for="nome_retirada" class="form-label">Nome de quem irá retirar</label>
+            <input type="text" name="nome_retirada" id="nome_retirada" class="form-control maiusculo" spellcheck="true">
+
+            <label for="cpf_retirada" class="form-label mt-2">CPF de quem irá retirar</label>
+            <input type="text" name="cpf_retirada" id="cpf_retirada" class="form-control" maxlength="14">
+        </div>
+
+        <div class="mb-3">
+            <label for="prazo_limite" class="form-label">Prazo Limite de Entrega</label>
+            <input type="date" name="prazo_limite" id="prazo_limite" class="form-control" min="{{ hoje }}" required>
+            <small id="dias-restantes" class="text-muted"></small>
+        </div>
+
+        <h4>Itens da Solicitação</h4>
+        <div id="items">
+            <div class="row g-2 mb-3 item">
+                <div class="col-12 col-md-3">
+                    <input type="text" name="nome_produto" placeholder="Nome do Produto" class="form-control maiusculo"
+                        list="produtos_sugeridos" autocomplete="off" spellcheck="false">
+                    <datalist id="produtos_sugeridos">
+                        {% for termo in termos_produto %}
+                        <option value="{{ termo }}">
+                            {% endfor %}
+                    </datalist>
+                </div>
+                <div class="col-12 col-md-2">
+                    <input type="text" name="nome_tecnico" placeholder="Nome Técnico" class="form-control maiusculo"
+                        spellcheck="true">
+                </div>
+                <div class="col-6 col-md-1">
+                    <input type="text" name="quantidade" placeholder="Qtd" class="form-control">
+                </div>
+                <div class="col-6 col-md-2">
+                    <select name="voltagem" class="form-select">
+                        <option value="">Voltagem</option>
+                        <option value="110V">110V</option>
+                        <option value="220V">220V</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <input type="text" name="especificacoes" placeholder="Especificações" class="form-control maiusculo"
+                        spellcheck="true">
+                </div>
+                <div class="col-12 col-md-2">
+                    <input type="text" name="link" class="form-control" placeholder="Link">
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <button type="button" class="btn btn-outline-primary" id="adicionarItem">+ Adicionar Item</button>
+        </div>
+
+        <div class="mb-3">
+            <label for="observacao" class="form-label">Observações</label>
+            <textarea name="observacao" id="observacao" rows="3" class="form-control" spellcheck="true"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-success">Enviar Solicitação</button>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary ms-2">← Voltar ao Dashboard</a>
+    </form>
+</div>
 
 <script src="{{ url_for('static', filename='js/form.js') }}" defer></script>
 <script src="https://unpkg.com/imask"></script>

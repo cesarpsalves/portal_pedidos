@@ -1,5 +1,4 @@
 # app/routes/auth.py
-# Autenticação, cadastro, definição e alteração de senha
 
 import os
 from markupsafe import Markup
@@ -8,7 +7,10 @@ from flask import (
     redirect, url_for, flash, session, current_app
 )
 from werkzeug.security import check_password_hash, generate_password_hash
-from app.extensions import db
+from sqlalchemy import or_
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from flask_mail import Message
+from app.extensions import db, mail
 from app.models.usuarios import Usuario, Status
 from app.models.unidades import Unidade
 
@@ -20,13 +22,94 @@ DOMINIOS_PADRAO = (
     "@grifcar.com.br",
 )
 
+def gerar_token(email):
+    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+    return serializer.dumps(email, salt="senha-reset")
+
+def validar_token(token, tempo_expiracao=1800):
+    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+    try:
+        email = serializer.loads(token, salt="senha-reset", max_age=tempo_expiracao)
+        return email
+    except (SignatureExpired, BadSignature):
+        return None
+
+@auth_bp.route("/esqueci-senha", methods=["GET", "POST"])
+def esqueci_senha():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        usuario = Usuario.query.filter(
+            or_(
+                Usuario.email_principal == email,
+                Usuario.email_empresa == email,
+                Usuario.email_google == email
+            )
+        ).first()
+
+        if not usuario:
+            flash("E-mail não encontrado.", "danger")
+            return redirect(url_for("auth.esqueci_senha"))
+
+        token = gerar_token(email)
+        link = url_for("auth.resetar_senha_token", token=token, _external=True)
+
+        msg = Message("Redefinição de Senha - Portal KFP",
+                      recipients=[email])
+        msg.body = f"Olá, {usuario.nome}!\n\nClique no link abaixo para redefinir sua senha (válido por 30 minutos):\n{link}\n\nSe não solicitou isso, ignore este e-mail."
+
+        mail.send(msg)
+        flash("Um link de redefinição foi enviado para seu e-mail.", "info")
+        return redirect(url_for("auth.login"))
+
+    return render_template("auth/forgot_password.html")
+
+@auth_bp.route("/resetar-senha/<token>", methods=["GET", "POST"])
+def resetar_senha_token(token):
+    email = validar_token(token)
+    if not email:
+        flash("Link expirado ou inválido. Solicite um novo.", "danger")
+        return redirect(url_for("auth.esqueci_senha"))
+
+    usuario = Usuario.query.filter_by(email_principal=email).first()
+    if not usuario:
+        flash("Usuário não encontrado.", "danger")
+        return redirect(url_for("auth.login"))
+
+    if request.method == "POST":
+        senha = request.form.get("senha", "").strip()
+        confirmar = request.form.get("confirmar_senha", "").strip()
+
+        if senha != confirmar:
+            flash("As senhas não coincidem.", "danger")
+            return redirect(request.url)
+
+        if len(senha) < 8:
+            flash("A senha deve ter pelo menos 8 caracteres.", "danger")
+            return redirect(request.url)
+
+        usuario.senha_hash = generate_password_hash(senha)
+        db.session.commit()
+
+        flash("Senha redefinida com sucesso! Faça login.", "success")
+        return redirect(url_for("auth.login"))
+
+    return render_template("auth/reset_password.html", token=token)
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         senha = request.form.get("senha", "")
 
-        usuario = Usuario.query.filter_by(email_principal=email).first()
+        usuario = Usuario.query.filter(
+            or_(
+                Usuario.email_principal == email,
+                Usuario.email_empresa == email,
+                Usuario.email_google == email
+            )
+        ).first()
+
         if not usuario or not usuario.senha_hash or not check_password_hash(usuario.senha_hash, senha):
             flash("E-mail ou senha inválidos.", "danger")
             return redirect(url_for("auth.login"))
@@ -62,7 +145,6 @@ def login():
             "static", filename="images/default_user.png"
         )
 
-
         flash("Login realizado com sucesso!", "success")
         return redirect(url_for("main.dashboard"))
 
@@ -86,7 +168,13 @@ def cadastro():
             flash("Todos os campos são obrigatórios.", "danger")
             return redirect(url_for("auth.cadastro"))
 
-        if Usuario.query.filter_by(email_principal=email).first():
+        if Usuario.query.filter(
+            or_(
+                Usuario.email_principal == email,
+                Usuario.email_empresa == email,
+                Usuario.email_google == email
+            )
+        ).first():
             flash("Este e-mail já está cadastrado.", "warning")
             return redirect(url_for("auth.cadastro"))
 

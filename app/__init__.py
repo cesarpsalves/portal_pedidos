@@ -82,4 +82,8 @@ def create_app():
     app.register_blueprint(historico_bp)
     app.register_blueprint(recebimentos_bp)
 
+    # ─────────────── REGISTRO DE FILTROS JINJA ────────────────
+    from app.utils.filtros import registrar_filtros
+    registrar_filtros(app)
+
     return app

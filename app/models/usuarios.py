@@ -26,13 +26,10 @@ class Usuario(db.Model):
     google_id        = db.Column(db.String(200), unique=True, nullable=True)
     email_google     = db.Column(db.String(150), unique=True, nullable=True)
 
-    logs = db.relationship("Log", back_populates="usuario")
+    # Relacionamento com logs (sem conflito)
+    logs             = db.relationship("Log", back_populates="usuario")
 
-    # ↓ substitui o antigo ativo
-    status           = db.Column(db.SmallInteger,
-                                 nullable=False,
-                                 default=Status.AGUARDANDO)
-
+    status           = db.Column(db.SmallInteger, nullable=False, default=Status.AGUARDANDO)
     foto_url         = db.Column(db.String(500), nullable=True)
     criado_em        = db.Column(db.DateTime, default=datetime.utcnow)
 
