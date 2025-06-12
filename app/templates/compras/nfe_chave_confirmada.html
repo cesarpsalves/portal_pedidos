@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Chave Confirmada{% endblock %}
+
+{% block content %}
+<h2 class="mt-4">Chave Confirmada</h2>
+<hr>
+
+<p class="mb-3">A chave de acesso foi confirmada com sucesso. Deseja consultar os dados completos via NFE.io?</p>
+
+<div class="mb-4 text-center">
+    <strong style="font-size: 1.4em;">
+        {{ chave[:4] }} {{ chave[4:8] }} {{ chave[8:12] }} {{ chave[12:16] }}
+        {{ chave[16:20] }} {{ chave[20:24] }} {{ chave[24:28] }} {{ chave[28:32] }}
+        {{ chave[32:36] }} {{ chave[36:40] }} {{ chave[40:] }}
+    </strong>
+</div>
+
+<form action="{{ url_for('compras.consulta_api_nfe') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for bloco in blocos %}
+    <input type="hidden" name="bloco{{ loop.index }}" value="{{ bloco }}">
+    {% endfor %}
+
+    <div class="d-flex justify-content-between">
+        <a href="{{ request.referrer or url_for('compras.lista_compras') }}" class="btn btn-secondary">← Voltar</a>
+        <button type="submit" class="btn btn-primary">Consultar na NFE.io</button>
+    </div>
+</form>
+{% endblock %}

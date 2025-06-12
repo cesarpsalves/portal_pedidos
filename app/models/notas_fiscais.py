@@ -1,4 +1,5 @@
 # app/models/notas_fiscais.py
+
 from datetime import datetime
 from app.extensions import db
 
@@ -12,12 +13,18 @@ class NotaFiscal(db.Model):
     nome_emitente = db.Column(db.String(255))
     chave_acesso = db.Column(db.String(44), unique=True)
     data_emissao = db.Column(db.Date)
+
     valor_total = db.Column(db.Numeric(12, 2))
     valor_icms = db.Column(db.Numeric(12, 2))
     valor_ipi = db.Column(db.Numeric(12, 2))
     valor_frete = db.Column(db.Numeric(12, 2))
+
     arquivo_pdf = db.Column(db.String(255))
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
     criado_por = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
 
+    compra_id = db.Column(db.Integer, db.ForeignKey("compras.id"), nullable=True)
+    pacote_id = db.Column(db.Integer, db.ForeignKey("pacote_entrega.id"), nullable=True)
+
     criado_por_usuario = db.relationship("Usuario", backref="notas_fiscais", lazy=True)
+    compra = db.relationship("Compra", backref=db.backref("notas_fiscais", lazy=True))

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Dados da NF-e{% endblock %}
+
+{% block content %}
+<h2 class="mt-4">Dados da Nota Fiscal (via NFE.io)</h2>
+<hr>
+<p><strong>Chave de Acesso:</strong> {{ chave }}</p>
+
+{% if nota %}
+<ul class="list-group mb-4">
+    <li class="list-group-item"><strong>Emitente:</strong> {{ nota.emitente.nome or '---' }}</li>
+    <li class="list-group-item"><strong>CNPJ:</strong> {{ nota.emitente.cnpj or '---' }}</li>
+    <li class="list-group-item"><strong>Data de Emissão:</strong> {{ nota.dataEmissao or '---' }}</li>
+    <li class="list-group-item"><strong>Valor Total:</strong> R$ {{ nota.valorTotal or '---' }}</li>
+</ul>
+{% else %}
+<div class="alert alert-warning">Dados não disponíveis.</div>
+{% endif %}
+
+<a href="{{ request.referrer or url_for('compras.lista_compras') }}" class="btn btn-secondary">← Voltar</a>
+{% endblock %}

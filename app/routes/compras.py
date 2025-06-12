@@ -1,15 +1,34 @@
 # app/routes/compras.py
 
-from flask import Blueprint, render_template, redirect, url_for, session, flash, request
+from flask import (
+    Blueprint, render_template, redirect, url_for, session, flash, request,
+    send_file, current_app
+)
+from flask_wtf import FlaskForm
+from wtforms import HiddenField
 from app.models.solicitacoes import Solicitacao, ItemSolicitacao
 from app.models.compras import Compra
+from app.models.notas_fiscais import NotaFiscal
+from app.models.pacotes import PacoteEntrega
 from app.extensions import db
 from app.utils.auth import login_required, ativo_required
+from app.utils.nfe_utils import (
+    extrair_dados_pdf, extrair_texto_pdf_pypdf2,
+    salvar_texto_temporario, extrair_chave_acesso
+)
+from app.utils.nfeio_api import consultar_nfe_nfeio
 from datetime import datetime
+import os
+import uuid
 
 compras_bp = Blueprint("compras", __name__)
 
 PERFIS_COMPRADOR = {"comprador", "administrador", "gerente", "diretor"}
+
+class DummyForm(FlaskForm):
+    csrf_token = HiddenField()
+
+
 
 @compras_bp.route("/compras")
 @login_required
@@ -46,16 +65,10 @@ def compra_detalhes(solicitacao_id):
         inscricao_estadual = request.form.get("inscricao_estadual") or ""
         categoria_entrega = request.form.get("categoria_entrega") or "único"
         informacoes_adicionais = request.form.get("informacoes_adicionais") or ""
-        data_prevista_entrega_str = request.form.get("data_prevista_entrega") or ""
-        data_prevista_entrega = (
-            datetime.strptime(data_prevista_entrega_str, "%Y-%m-%d").date()
-            if data_prevista_entrega_str
-            else None
-        )
 
         for item in itens:
             senha_field = f"senha_recebimento_item_{item.id}"
-            senha_recebimento = request.form.get(senha_field) or ""
+            senha_recebimento = request.form.get(senha_field) or request.form.get("senha_recebimento_unico") or ""
 
             nova_compra = Compra(
                 item_id=item.id,
@@ -71,10 +84,66 @@ def compra_detalhes(solicitacao_id):
                 loja_nome=nome_loja,
                 loja_inscricao_estadual=inscricao_estadual,
                 entrega_categoria=categoria_entrega,
-                data_prevista_entrega=data_prevista_entrega,
-                data_compra=datetime.utcnow(),
+                data_compra=datetime.utcnow()
             )
             db.session.add(nova_compra)
+            db.session.flush()
+
+            if categoria_entrega == "unico":
+                data_entrega_str = request.form.get("data_prevista_entrega_unico") or ""
+                data_entrega = datetime.strptime(data_entrega_str, "%Y-%m-%d").date() if data_entrega_str else None
+
+                dados_nfe = session.pop(f"nfe_temporaria_unico_{solicitacao_id}", None)
+                nota_fiscal = None
+
+                if dados_nfe:
+                    nota_fiscal = NotaFiscal(
+                        chave_acesso=dados_nfe.get("chave_acesso"),
+                        arquivo_pdf=dados_nfe.get("arquivo_pdf"),
+                        criado_por=session.get("usuario_id")
+                    )
+                    db.session.add(nota_fiscal)
+                    db.session.flush()
+
+                pacote = PacoteEntrega(
+                    compra_id=nova_compra.id,
+                    quantidade=1,
+                    senha_recebimento=senha_recebimento,
+                    data_prevista_entrega=data_entrega,
+                    nota_fiscal_id=nota_fiscal.id if nota_fiscal else None,
+                )
+                db.session.add(pacote)
+
+            elif categoria_entrega == "multiplo":
+                for i in range(1, 100):
+                    qtd = request.form.get(f"pacotes[{i}][qtd]")
+                    senha = request.form.get(f"pacotes[{i}][senha]")
+                    data = request.form.get(f"pacotes[{i}][data_entrega]")
+
+                    if not qtd and not senha and not data:
+                        continue
+
+                    data_entrega = datetime.strptime(data, "%Y-%m-%d").date() if data else None
+                    dados_nfe = session.pop(f"nfe_temporaria_multiplo_{solicitacao_id}_pacote_{i}", None)
+                    nota_fiscal = None
+
+                    if dados_nfe:
+                        nota_fiscal = NotaFiscal(
+                            chave_acesso=dados_nfe.get("chave_acesso"),
+                            arquivo_pdf=dados_nfe.get("arquivo_pdf"),
+                            criado_por=session.get("usuario_id")
+                        )
+                        db.session.add(nota_fiscal)
+                        db.session.flush()
+
+                    pacote = PacoteEntrega(
+                        compra_id=nova_compra.id,
+                        quantidade=int(qtd) if qtd else 1,
+                        senha_recebimento=senha,
+                        data_prevista_entrega=data_entrega,
+                        nota_fiscal_id=nota_fiscal.id if nota_fiscal else None,
+                    )
+                    db.session.add(pacote)
 
         solicitacao.status = "comprada"
         db.session.commit()
@@ -85,8 +154,167 @@ def compra_detalhes(solicitacao_id):
         )
         return redirect(url_for("compras.lista_compras"))
 
+    ultima_compra = (
+        Compra.query
+        .filter(Compra.item_id.in_([item.id for item in itens]))
+        .order_by(Compra.id.desc())
+        .first()
+    )
+
     return render_template(
         "compras/detalhes.html",
         solicitacao=solicitacao,
         itens=itens,
+        compra=ultima_compra
     )
+
+
+# Preprocessar PDF e extrair chave
+@compras_bp.route("/compras/nfe/preprocessar", methods=["POST"])
+@login_required
+@ativo_required
+def preprocessar_nfe():
+    file = request.files.get("arquivo")
+    tipo = request.form.get("tipo") or "unico"
+    pacote = request.form.get("pacote") or "0"
+    solicitacao_id = request.form.get("solicitacao_id")
+
+    if not file or not file.filename.endswith(".pdf"):
+        flash("Arquivo inválido. Envie um PDF.", "danger")
+        return redirect(request.referrer)
+
+    filename = f"nfe_{uuid.uuid4().hex}.pdf"
+    folder = os.path.join(current_app.static_folder, "uploads", "notas_temp")
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, filename)
+
+    try:
+        file.save(path)
+        current_app.logger.info(f"[UPLOAD PREPROCESSAR] Arquivo salvo em: {path}")
+    except Exception as e:
+        current_app.logger.error(f"[ERRO AO SALVAR] {e}")
+        flash("Erro ao salvar o arquivo.", "danger")
+        return redirect(request.referrer)
+
+    try:
+        texto = extrair_texto_pdf_pypdf2(path)
+        salvar_texto_temporario(texto)
+        chave = extrair_chave_acesso(texto)
+    except Exception as e:
+        current_app.logger.error(f"[ERRO EXTRAÇÃO] {e}")
+        chave = None
+
+    blocos = chave.split() if chave else [""] * 11
+
+    return render_template(
+        "compras/nfe_confirma_chave.html",
+        blocos=blocos,
+        arquivo_pdf=filename,
+        tipo=tipo,
+        pacote=pacote,
+        solicitacao_id=solicitacao_id
+    )
+
+@compras_bp.route("/compras/nfe/anexar/<tipo>/<int:solicitacao_id>", methods=["GET", "POST"])
+@login_required
+@ativo_required
+def anexar_nfe(tipo, solicitacao_id):
+    form = DummyForm()  # CSRF protection
+
+    if tipo not in ("unico", "multiplo"):
+        flash("Tipo de entrega inválido.", "danger")
+        return redirect(url_for("compras.compra_detalhes", solicitacao_id=solicitacao_id))
+
+    if request.method == "POST":
+        file = request.files.get("arquivo")
+        if not file or not file.filename.endswith(".pdf"):
+            flash("Envie um arquivo PDF válido.", "danger")
+            return redirect(request.url)
+
+        filename = f"nfe_{uuid.uuid4().hex}.pdf"
+        upload_folder = os.path.join(current_app.static_folder, "uploads", "notas_temp")
+        os.makedirs(upload_folder, exist_ok=True)
+        path = os.path.join(upload_folder, filename)
+
+        try:
+            file.save(path)
+            current_app.logger.info(f"[UPLOAD] Arquivo salvo em: {path}")
+        except PermissionError:
+            current_app.logger.error(f"[ERRO PERMISSÃO] {upload_folder}")
+            flash("Erro de permissão ao salvar o arquivo da nota fiscal.", "danger")
+            return redirect(request.referrer)
+        except Exception as e:
+            current_app.logger.error(f"[ERRO DESCONHECIDO] {str(e)}")
+            flash("Erro ao salvar o arquivo.", "danger")
+            return redirect(request.referrer)
+
+        dados = extrair_dados_pdf(path)
+        dados["arquivo_pdf"] = url_for("static", filename=f"uploads/notas_temp/{filename}")
+
+        session[f"nfe_temporaria_{tipo}_{solicitacao_id}"] = dados
+        flash("Nota Fiscal capturada com sucesso. Revise abaixo.", "success")
+        return render_template("compras/nfe_revisao.html", form=form, dados=dados, tipo=tipo, solicitacao_id=solicitacao_id)
+
+    return render_template(
+        "compras/nfe_upload.html",
+        tipo=tipo,
+        solicitacao_id=solicitacao_id,
+        form=form  # ESSENCIAL!
+    )
+
+# Confirmar Chave (POST)
+@compras_bp.route("/compras/nfe/confirmar_chave", methods=["POST"])
+@login_required
+@ativo_required
+def confirmar_chave():
+    current_app.logger.info(f"[CONFIRMAR_CHAVE] Método: {request.method}")
+    blocos = [request.form.get(f"bloco{i}") for i in range(1, 12)]
+
+    if not all(blocos) or any(len(b) != 4 for b in blocos):
+        flash("Preencha os 11 blocos de 4 dígitos corretamente.", "danger")
+        return redirect(request.referrer)
+
+    chave_final = "".join(blocos)
+    if len(chave_final) != 44 or not chave_final.isdigit():
+        flash("Chave inválida. Corrija os blocos.", "danger")
+        return redirect(request.referrer)
+
+    flash(f"Chave de acesso confirmada: {chave_final}", "success")
+
+    tipo = request.form.get("tipo")
+    solicitacao_id = request.form.get("solicitacao_id")
+    pacote = request.form.get("pacote") or "0"
+
+    session[f"nfe_temporaria_{tipo}_{solicitacao_id}"] = {
+        "chave_acesso": chave_final,
+        "pacote": pacote,
+    }
+
+    return redirect(url_for("compras.compra_detalhes", solicitacao_id=solicitacao_id))
+
+
+# Proteção GET direto na rota POST
+@compras_bp.route("/compras/nfe/confirmar_chave", methods=["GET"])
+@login_required
+@ativo_required
+def confirmar_chave_get():
+    flash("Acesso inválido. Use o formulário para confirmar a chave.", "warning")
+    return redirect(url_for("compras.lista_compras"))
+
+# Consulta API NFE.io
+@compras_bp.route("/compras/nfe/consulta_api", methods=["POST"])
+@login_required
+@ativo_required
+def consulta_api_nfe():
+    chave = request.form.get("chave") or "".join(request.form.get(f"bloco{i}") for i in range(1, 12))
+
+    if not chave.isdigit() or len(chave) != 44:
+        flash("Chave inválida. Confirme os 11 blocos de 4 dígitos.", "danger")
+        return redirect(request.referrer)
+
+    try:
+        dados_nota = consultar_nfe_nfeio(chave)
+        return render_template("compras/nfe_dados_api.html", nota=dados_nota, chave=chave)
+    except Exception as e:
+        flash(f"Erro ao consultar a nota: {e}", "danger")
+        return redirect(request.referrer)

@@ -5,7 +5,6 @@
 <h2 class="mt-4">Preencher Dados da Compra para Solicitação #{{ solicitacao.id }}</h2>
 <hr>
 
-<!-- Info da Solicitação -->
 <div class="mb-4">
     <h4>Informações da Solicitação</h4>
     <ul>
@@ -19,7 +18,6 @@
     </ul>
 </div>
 
-<!-- Itens -->
 <div class="mb-4">
     <h4>Itens Solicitados ({{ itens|length }} {{ "item" if itens|length == 1 else "itens" }})</h4>
     <div class="table-responsive">
@@ -50,7 +48,6 @@
     </div>
 </div>
 
-<!-- Formulário de Compra -->
 <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -107,7 +104,6 @@
         <label class="form-check-label" for="entrega_multiplo">Múltiplos Pacotes</label>
     </div>
 
-    <!-- Pacote Único -->
     <div id="bloco-unico" class="mb-4 border p-3 rounded bg-light">
         <h5>Pacote Único</h5>
         <div class="mb-3">
@@ -119,13 +115,19 @@
             <input type="date" class="form-control" name="data_prevista_entrega_unico" id="data_prevista_entrega_unico">
         </div>
         <div class="mb-3">
-            <label for="nota_fiscal_unico" class="form-label">Anexar Nota Fiscal (opcional):</label>
-            <input type="file" class="form-control" name="nota_fiscal_unico" id="nota_fiscal_unico"
-                accept=".pdf,.jpg,.png">
+            {% set nfe = session.get("nfe_temporaria_unico_" ~ solicitacao.id) %}
+            {% if nfe %}
+            <div class="alert alert-success">
+                Nota fiscal anexada. Chave: <code>{{ nfe.chave_acesso }}</code><br>
+                <a href="{{ nfe.arquivo_pdf }}" target="_blank">📄 Visualizar PDF</a>
+            </div>
+            {% else %}
+            <a href="{{ url_for('compras.anexar_nfe', tipo='unico', solicitacao_id=solicitacao.id) }}"
+                class="btn btn-outline-primary">Anexar Nota Fiscal</a>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Múltiplos Pacotes -->
     <div id="bloco-multiplo" class="mb-4 border p-3 rounded bg-light" style="display: none;">
         <h5>Múltiplos Pacotes</h5>
         <div class="table-responsive">
@@ -148,19 +150,15 @@
         <button type="button" class="btn btn-outline-primary" id="btn-adicionar-pacote">+ Adicionar Pacote</button>
     </div>
 
-    <!-- Informações adicionais -->
     <div class="mb-4">
         <label for="informacoes_adicionais" class="form-label">Informações Adicionais (opcional):</label>
         <textarea class="form-control" name="informacoes_adicionais" id="informacoes_adicionais" rows="3"></textarea>
     </div>
 
-    <!-- Botões -->
     <button type="submit" class="btn btn-success">Salvar Compra</button>
     <a href="{{ url_for('compras.lista_compras') }}" class="btn btn-secondary">← Voltar à lista</a>
 </form>
 
-<!-- Inclusões finais -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/compras.css') }}">
 <script src="{{ url_for('static', filename='js/compras.js') }}"></script>
-
 {% endblock %}

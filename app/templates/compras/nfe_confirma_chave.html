@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Confirmar Chave de Acesso{% endblock %}
+
+{% block content %}
+<h2 class="mt-4">Confirmar Chave de Acesso</h2>
+<hr>
+
+<p class="mb-3">A chave de acesso foi detectada automaticamente a partir do PDF enviado. Por favor, confirme os blocos
+    abaixo:</p>
+
+<form method="post" action="{{ url_for('compras.confirmar_chave') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if arquivo_pdf %}
+    <input type="hidden" name="arquivo_pdf" value="{{ arquivo_pdf }}">
+    {% endif %}
+
+    <div class="row g-2 justify-content-center mb-4">
+        {% for bloco in blocos %}
+        <div class="col-auto">
+            <input type="text" name="bloco{{ loop.index }}" class="form-control text-center chave-bloco" maxlength="4"
+                value="{{ bloco }}" pattern="\d{4}" required inputmode="numeric" placeholder="----"
+                style="width: 70px; font-weight: bold;" />
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if arquivo_pdf %}
+    <div class="mb-3 text-center">
+        <a href="{{ url_for('static', filename='uploads/notas_temp/' + arquivo_pdf) }}" target="_blank"
+            class="btn btn-outline-primary">Visualizar PDF</a>
+    </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between">
+        <a href="{{ request.referrer or url_for('compras.lista_compras') }}" class="btn btn-secondary">← Voltar</a>
+        <button type="submit" class="btn btn-success">Confirmar Chave</button>
+    </div>
+</form>
+
+<script>
+    document.querySelectorAll(".chave-bloco").forEach((input, index, inputs) => {
+        input.addEventListener("input", () => {
+            if (input.value.length === 4 && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+        });
+    });
+</script>
+{% endblock %}
