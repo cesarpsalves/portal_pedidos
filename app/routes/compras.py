@@ -253,12 +253,20 @@ def anexar_nfe(tipo, solicitacao_id):
             pacote_id = request.args.get("pacote", type=int)
             if not pacote_id:
                 return jsonify(success=False, message="Pacote não especificado"), 400
-            return jsonify(success=True, dados=dados, pacote_id=pacote_id)
 
-        session[f"nfe_temporaria_{tipo}_{solicitacao_id}"] = dados
+            session[f"nfe_temporaria_multiplo_{solicitacao_id}_pacote_{pacote_id}"] = dados
 
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return jsonify(success=True, dados=dados)
+            return render_template(
+                "compras/nfe_revisao.html",
+                form=form,
+                dados=dados,
+                tipo=tipo,
+                solicitacao_id=solicitacao_id,
+                pacote=pacote_id
+            )
+
+        # tipo == unico
+        session[f"nfe_temporaria_unico_{solicitacao_id}"] = dados
 
         flash("Nota Fiscal capturada com sucesso. Revise abaixo.", "success")
         return render_template(
@@ -266,7 +274,8 @@ def anexar_nfe(tipo, solicitacao_id):
             form=form,
             dados=dados,
             tipo=tipo,
-            solicitacao_id=solicitacao_id
+            solicitacao_id=solicitacao_id,
+            pacote=None
         )
 
     return render_template(
@@ -276,12 +285,12 @@ def anexar_nfe(tipo, solicitacao_id):
         form=form
     )
 
+
 # Confirmar Chave (POST)
 @compras_bp.route("/compras/nfe/confirmar", methods=["POST"])
 @login_required
 @ativo_required
 def confirmar_chave():
-    current_app.logger.info(f"[CONFIRMAR_CHAVE] Método: {request.method}")
     blocos = [request.form.get(f"bloco{i}") for i in range(1, 12)]
 
     if not all(blocos) or any(len(b) != 4 for b in blocos):
@@ -293,18 +302,24 @@ def confirmar_chave():
         flash("Chave inválida. Corrija os blocos.", "danger")
         return redirect(request.referrer)
 
-    flash(f"Chave de acesso confirmada: {chave_final}", "success")
-
     tipo = request.form.get("tipo")
     solicitacao_id = request.form.get("solicitacao_id")
     pacote = request.form.get("pacote") or "0"
 
-    session[f"nfe_temporaria_{tipo}_{solicitacao_id}"] = {
+    chave_sessao = (
+        f"nfe_temporaria_multiplo_{solicitacao_id}_pacote_{pacote}"
+        if tipo == "multiplo"
+        else f"nfe_temporaria_unico_{solicitacao_id}"
+    )
+
+    session[chave_sessao] = {
         "chave_acesso": chave_final,
         "pacote": pacote,
     }
 
+    flash("Chave de acesso confirmada com sucesso.", "success")
     return redirect(url_for("compras.compra_detalhes", solicitacao_id=solicitacao_id))
+
 
 
 # Proteção GET direto na rota POST

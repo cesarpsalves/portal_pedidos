@@ -159,6 +159,25 @@
     <a href="{{ url_for('compras.lista_compras') }}" class="btn btn-secondary">← Voltar à lista</a>
 </form>
 
+<!-- CSS -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/compras.css') }}">
+
+<!-- JS para passar variáveis antes de importar o script principal -->
+<script>
+    window.solicitacaoId = {{ solicitacao.id }};
+    window.sessionNotas = {
+        {% set notas = [] %}
+        {% for key, value in session.items() %}
+            {% if key.startswith("nfe_temporaria_multiplo_" ~ solicitacao.id ~ "_pacote_") %}
+                {% set pacote_id = key.split('_pacote_')[1] %}
+                {% set linha = '"' ~ pacote_id ~ '": {"chave_acesso": "' ~ value.chave_acesso ~ '"}' %}
+                {% set notas = notas + [linha] %}
+            {% endif %}
+        {% endfor %}
+        {{ notas | join(',\n        ') | safe }}
+    };
+</script>
+
+<!-- JS principal -->
 <script src="{{ url_for('static', filename='js/compras.js') }}"></script>
 {% endblock %}

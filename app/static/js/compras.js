@@ -62,9 +62,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Preencher os pacotes com os dados da sessão
     if (window.sessionNotas) {
-        for (const [id, chave] of Object.entries(window.sessionNotas)) {
-            adicionarLinhaPacote(id, chave);
+        for (const [id, dados] of Object.entries(window.sessionNotas)) {
+            const chave_acesso = dados.chave_acesso || null;
+            adicionarLinhaPacote(id, chave_acesso);
             contadorPacote = Math.max(contadorPacote, parseInt(id));
         }
     }
