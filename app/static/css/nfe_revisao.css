@@ -1,0 +1,23 @@
+.linha-chaves {
+    display: grid;
+    grid-template-columns: repeat(4, 80px);
+    gap: 10px;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .linha-chaves {
+        grid-template-columns: repeat(4, 80px);
+    }
+}
+
+@media (max-width: 576px) {
+    .linha-chaves {
+        grid-template-columns: repeat(4, 80px);
+    }
+}
+
+.chave-bloco {
+    font-size: 1.2rem;
+    text-align: center;
+}

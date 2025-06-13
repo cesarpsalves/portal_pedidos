@@ -1,47 +1,42 @@
 {% extends "base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nfe_revisao.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <h4 class="mb-3">Anexar Nota Fiscal</h4>
-    <form method="POST" enctype="multipart/form-data" action="" class="needs-validation" novalidate>
+<div class="text-center">
+    <h4 class="mb-3">Revisar Nota Fiscal</h4>
+    <form id="form-revisao" method="POST" action="{{ url_for('compras.confirmar_chave') }}">
         {{ form.hidden_tag() }}
-        <input type="hidden" name="pacote_id" value="{{ pacote_id }}">
-        <div class="form-group mb-3">
-            <label>Arquivo PDF</label>
-            <div id="drop-area" class="border border-secondary p-4 text-center rounded bg-light">
-                <p>Arraste o PDF aqui ou clique para selecionar</p>
-                <input type="file" name="arquivo_pdf" id="fileElem" accept=".pdf" style="display:none" required>
-                <button type="button" class="btn btn-secondary mt-2"
-                    onclick="document.getElementById('fileElem').click();">Selecionar PDF</button>
+        <input type="hidden" name="chave_acesso_final" id="chave_acesso_final">
+        <input type="hidden" name="tipo" value="{{ tipo }}">
+        <input type="hidden" name="solicitacao_id" value="{{ solicitacao_id }}">
+        <input type="hidden" name="pacote" value="{{ request.args.get('pacote', '') }}">
+
+        <label class="form-label fw-semibold mb-2">Chave de Acesso</label>
+        <div class="d-flex flex-column align-items-center">
+            <div class="linha-chaves d-flex flex-wrap justify-content-center gap-2">
+                {% for i in range(0, 11) %}
+                <input type="text" class="form-control chave-bloco text-center" maxlength="4" name="bloco{{ i+1 }}"
+                    id="bloco{{ i+1 }}" style="width: 80px;"
+                    value="{{ dados.chave_acesso.split()[i] if dados.chave_acesso }}">
+                {% endfor %}
             </div>
         </div>
 
-        <div class="form-group mb-3">
-            <label>Chave de Acesso</label>
-            {{ form.chave_acesso(class="form-control", required=True) }}
+        <div id="chave-preview" class="text-muted mt-3">----</div>
+        <div id="alerta-chave" class="alert alert-danger d-none mt-3">
+            Preencha corretamente todos os 44 dígitos da chave de acesso.
         </div>
 
-        <button type="submit" class="btn btn-success w-100">Confirmar Anexo</button>
+        <div class="mt-4 d-flex justify-content-between flex-wrap gap-3 justify-content-center">
+            <a href="{{ url_for('compras.lista_compras') }}" class="btn btn-secondary">Voltar</a>
+            <button type="submit" class="btn btn-primary" id="btn-confirmar">Confirmar Nota</button>
+        </div>
     </form>
 </div>
+{% endblock %}
 
-<script>
-    const dropArea = document.getElementById("drop-area");
-    const fileElem = document.getElementById("fileElem");
-
-    ['dragenter', 'dragover'].forEach(evt => dropArea.addEventListener(evt, e => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropArea.classList.add('border-primary');
-    }));
-
-    ['dragleave', 'drop'].forEach(evt => dropArea.addEventListener(evt, e => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropArea.classList.remove('border-primary');
-    }));
-
-    dropArea.addEventListener("drop", e => {
-        fileElem.files = e.dataTransfer.files;
-    });
-</script>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/nfe_revisao.js') }}"></script>
 {% endblock %}

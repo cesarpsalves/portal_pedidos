@@ -1,8 +1,7 @@
-# app/routes/compras.py
 
 from flask import (
     Blueprint, render_template, redirect, url_for, session, flash, request,
-    send_file, current_app
+    send_file, current_app, jsonify, abort
 )
 from flask_wtf import FlaskForm
 from wtforms import HiddenField
@@ -219,15 +218,16 @@ def preprocessar_nfe():
 @login_required
 @ativo_required
 def anexar_nfe(tipo, solicitacao_id):
-    form = DummyForm()  # CSRF protection
+    form = DummyForm()
 
     if tipo not in ("unico", "multiplo"):
-        flash("Tipo de entrega inválido.", "danger")
-        return redirect(url_for("compras.compra_detalhes", solicitacao_id=solicitacao_id))
+        return abort(400, "Tipo inválido")
 
     if request.method == "POST":
         file = request.files.get("arquivo")
         if not file or not file.filename.endswith(".pdf"):
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify(success=False, message="Envie um arquivo PDF válido."), 400
             flash("Envie um arquivo PDF válido.", "danger")
             return redirect(request.url)
 
@@ -238,32 +238,46 @@ def anexar_nfe(tipo, solicitacao_id):
 
         try:
             file.save(path)
-            current_app.logger.info(f"[UPLOAD] Arquivo salvo em: {path}")
-        except PermissionError:
-            current_app.logger.error(f"[ERRO PERMISSÃO] {upload_folder}")
-            flash("Erro de permissão ao salvar o arquivo da nota fiscal.", "danger")
-            return redirect(request.referrer)
         except Exception as e:
-            current_app.logger.error(f"[ERRO DESCONHECIDO] {str(e)}")
-            flash("Erro ao salvar o arquivo.", "danger")
-            return redirect(request.referrer)
+            msg = "Erro ao salvar arquivo: " + str(e)
+            current_app.logger.exception(msg)
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify(success=False, message=msg), 500
+            flash("Erro ao salvar o arquivo da nota fiscal.", "danger")
+            return redirect(request.url)
 
         dados = extrair_dados_pdf(path)
         dados["arquivo_pdf"] = url_for("static", filename=f"uploads/notas_temp/{filename}")
 
+        if tipo == "multiplo":
+            pacote_id = request.args.get("pacote", type=int)
+            if not pacote_id:
+                return jsonify(success=False, message="Pacote não especificado"), 400
+            return jsonify(success=True, dados=dados, pacote_id=pacote_id)
+
         session[f"nfe_temporaria_{tipo}_{solicitacao_id}"] = dados
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(success=True, dados=dados)
+
         flash("Nota Fiscal capturada com sucesso. Revise abaixo.", "success")
-        return render_template("compras/nfe_revisao.html", form=form, dados=dados, tipo=tipo, solicitacao_id=solicitacao_id)
+        return render_template(
+            "compras/nfe_revisao.html",
+            form=form,
+            dados=dados,
+            tipo=tipo,
+            solicitacao_id=solicitacao_id
+        )
 
     return render_template(
         "compras/nfe_upload.html",
         tipo=tipo,
         solicitacao_id=solicitacao_id,
-        form=form  # ESSENCIAL!
+        form=form
     )
 
 # Confirmar Chave (POST)
-@compras_bp.route("/compras/nfe/confirmar_chave", methods=["POST"])
+@compras_bp.route("/compras/nfe/confirmar", methods=["POST"])
 @login_required
 @ativo_required
 def confirmar_chave():

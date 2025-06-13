@@ -1,47 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h4>Upload de Nota Fiscal ({{ tipo|capitalize }})</h4>
-
-    <form method="POST" enctype="multipart/form-data" id="nfe-upload-form">
+    <h4>Anexar Nota Fiscal</h4>
+    <form method="POST" enctype="multipart/form-data" id="uploadForm">
         {{ form.hidden_tag() }}
-
-        <div class="mb-3">
-            <label class="form-label">Arraste o PDF aqui ou clique abaixo</label>
-            <div id="drop-zone" class="border border-primary rounded bg-light text-center py-4"
-                style="cursor: pointer;">
-                <i class="bi bi-upload display-4"></i>
-                <p>Solte o arquivo aqui ou clique para selecionar</p>
+        <input type="hidden" name="pacote_id" id="pacote_id" value="{{ request.args.get('pacote') }}">
+        <div class="card p-3 mt-3 border-dashed" id="dropZone">
+            <div class="text-center text-muted" id="dropText">
+                <i class="bi bi-file-earmark-arrow-up" style="font-size: 2rem;"></i><br>
+                <span>Arraste o PDF aqui ou clique para escolher</span>
             </div>
-            <input type="file" id="arquivo" name="arquivo" accept="application/pdf" class="form-control mt-2 d-none">
+            <input type="file" name="arquivo" accept=".pdf" class="form-control" id="arquivo"
+                style="opacity:0;position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;">
         </div>
-
-        <button type="submit" class="btn btn-success w-100">Enviar Nota Fiscal</button>
+        <div id="fileSelected" class="text-success text-center mt-2" style="display:none;">📄 Arquivo selecionado!</div>
+        <div class="text-end mt-3">
+            <button class="btn btn-primary" type="submit">Enviar</button>
+        </div>
     </form>
 </div>
 
 <script>
-    const dropZone = document.getElementById('drop-zone');
-    const inputFile = document.getElementById('arquivo');
-
-    dropZone.addEventListener('click', () => inputFile.click());
-
-    dropZone.addEventListener('dragover', e => {
-        e.preventDefault();
-        dropZone.classList.add('bg-primary', 'text-white');
+    document.getElementById("arquivo").addEventListener("change", () => {
+        document.getElementById("fileSelected").style.display = "block";
     });
 
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('bg-primary', 'text-white');
-    });
-
-    dropZone.addEventListener('drop', e => {
-        e.preventDefault();
-        dropZone.classList.remove('bg-primary', 'text-white');
-        if (e.dataTransfer.files.length > 0) {
-            inputFile.files = e.dataTransfer.files;
-            document.getElementById('nfe-upload-form').submit();
-        }
+    document.getElementById("dropZone").addEventListener("click", () => {
+        document.getElementById("arquivo").click();
     });
 </script>
 {% endblock %}
