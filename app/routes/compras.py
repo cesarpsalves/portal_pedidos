@@ -147,11 +147,18 @@ def compra_detalhes(solicitacao_id):
         solicitacao.status = "comprada"
         db.session.commit()
 
-        flash(
-            f"Dados de compra cadastrados para a Solicitação #{solicitacao.id}.",
-            "success",
-        )
+        flash(f"Dados de compra cadastrados para a Solicitação #{solicitacao.id}.", "success")
         return redirect(url_for("compras.lista_compras"))
+
+    # GET: popular formulário com dados temporários de pacotes múltiplos
+    session_notas = {}
+    for key, value in session.items():
+        if key.startswith(f"nfe_temporaria_multiplo_{solicitacao_id}_pacote_"):
+            pacote_id = key.split("_pacote_")[1]
+            session_notas[pacote_id] = {
+                "chave_acesso": value.get("chave_acesso", ""),
+                "arquivo_pdf": value.get("arquivo_pdf", "")
+            }
 
     ultima_compra = (
         Compra.query
@@ -164,9 +171,9 @@ def compra_detalhes(solicitacao_id):
         "compras/detalhes.html",
         solicitacao=solicitacao,
         itens=itens,
-        compra=ultima_compra
+        compra=ultima_compra,
+        session_notas=session_notas
     )
-
 
 # Preprocessar PDF e extrair chave
 @compras_bp.route("/compras/nfe/preprocessar", methods=["POST"])

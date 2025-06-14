@@ -1,5 +1,3 @@
-// static/js/compras.js
-
 document.addEventListener("DOMContentLoaded", () => {
     const entregaUnico = document.getElementById("entrega_unico");
     const entregaMultiplo = document.getElementById("entrega_multiplo");
@@ -55,14 +53,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (target.classList.contains("btn-anexar-nfe")) {
             const pacoteId = target.dataset.pacoteId;
-            if (pacoteId) {
-                const solicitacaoId = window.solicitacaoId || "";
-                window.location.href = `/compras/nfe/anexar/multiplo/${solicitacaoId}?pacote=${pacoteId}`;
+            if (pacoteId && window.solicitacaoId) {
+                window.location.href = `/compras/nfe/anexar/multiplo/${window.solicitacaoId}?pacote=${pacoteId}`;
             }
         }
     });
 
-    // Preencher os pacotes com os dados da sessão
     if (window.sessionNotas) {
         for (const [id, dados] of Object.entries(window.sessionNotas)) {
             const chave_acesso = dados.chave_acesso || null;

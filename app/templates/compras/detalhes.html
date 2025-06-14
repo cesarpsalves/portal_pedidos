@@ -8,44 +8,13 @@
 <div class="mb-4">
     <h4>Informações da Solicitação</h4>
     <ul>
-        <li><strong>Empresa Solicitante:</strong> {{ solicitacao.empresa_solicitante.nome if
-            solicitacao.empresa_solicitante else "---" }}</li>
+        <li><strong>Empresa Solicitante:</strong> {{ solicitacao.empresa_solicitante.nome if solicitacao.empresa_solicitante else "---" }}</li>
         <li><strong>Finalidade:</strong> {{ solicitacao.finalidade }}</li>
         <li><strong>Unidade:</strong> {{ solicitacao.unidade.nome if solicitacao.unidade else "---" }}</li>
         <li><strong>Solicitante:</strong> {{ solicitacao.usuario.nome }}</li>
         <li><strong>Data da Solicitação:</strong> {{ solicitacao.criado_em|formatar_local }}</li>
         <li><strong>Status atual:</strong> {{ solicitacao.status }}</li>
     </ul>
-</div>
-
-<div class="mb-4">
-    <h4>Itens Solicitados ({{ itens|length }} {{ "item" if itens|length == 1 else "itens" }})</h4>
-    <div class="table-responsive">
-        <table class="table table-bordered align-middle text-center">
-            <thead class="table-light">
-                <tr>
-                    <th>ID</th>
-                    <th>Produto</th>
-                    <th>Qtd.</th>
-                    <th>Voltagem</th>
-                    <th>Especificações</th>
-                    <th>Link</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in itens %}
-                <tr>
-                    <td>{{ item.id }}</td>
-                    <td>{{ item.nome_produto }}</td>
-                    <td>{{ item.quantidade }}</td>
-                    <td>{{ item.voltagem or "---" }}</td>
-                    <td>{{ item.especificacoes or "---" }}</td>
-                    <td>{% if item.link %}<a href="{{ item.link }}" target="_blank">Ver</a>{% else %}---{% endif %}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
 </div>
 
 <form method="POST" enctype="multipart/form-data">
@@ -56,106 +25,59 @@
             <label for="forma_pagamento" class="form-label"><strong>Forma de Pagamento:</strong></label>
             <select class="form-select" name="forma_pagamento" id="forma_pagamento" required>
                 <option value="">Selecione...</option>
-                <option value="BOLETO">Boleto</option>
-                <option value="PIX">Pix (QR Code)</option>
-                <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-                <option value="DINHEIRO">Dinheiro</option>
-                <option value="OUTRO">Outro</option>
+                <option value="BOLETO" {% if request.form.get('forma_pagamento') == 'BOLETO' %}selected{% endif %}>Boleto</option>
+                <option value="PIX" {% if request.form.get('forma_pagamento') == 'PIX' %}selected{% endif %}>Pix (QR Code)</option>
+                <option value="CARTAO_CREDITO" {% if request.form.get('forma_pagamento') == 'CARTAO_CREDITO' %}selected{% endif %}>Cartão de Crédito</option>
+                <option value="DINHEIRO" {% if request.form.get('forma_pagamento') == 'DINHEIRO' %}selected{% endif %}>Dinheiro</option>
+                <option value="OUTRO" {% if request.form.get('forma_pagamento') == 'OUTRO' %}selected{% endif %}>Outro</option>
             </select>
         </div>
 
         <div class="col-md-4">
             <label for="valor_total" class="form-label"><strong>Valor Total (R$):</strong></label>
-            <input type="number" step="0.01" class="form-control" name="valor_total" id="valor_total" required>
+            <input type="number" step="0.01" class="form-control" name="valor_total" id="valor_total" value="{{ request.form.get('valor_total', '') }}" required>
         </div>
 
         <div class="col-md-4">
             <label for="parcelamento" class="form-label"><strong>Parcelas:</strong></label>
-            <input type="number" min="0" class="form-control" name="parcelamento" id="parcelamento"
-                placeholder="Ex: 1, 2...">
+            <input type="number" min="0" class="form-control" name="parcelamento" id="parcelamento" value="{{ request.form.get('parcelamento', '') }}" placeholder="Ex: 1, 2...">
         </div>
     </div>
 
     <div class="row mb-3">
         <div class="col-md-4">
             <label for="desconto" class="form-label"><strong>Desconto (R$):</strong></label>
-            <input type="number" step="0.01" class="form-control" name="desconto" id="desconto" value="0.00">
+            <input type="number" step="0.01" class="form-control" name="desconto" id="desconto" value="{{ request.form.get('desconto', '0.00') }}">
         </div>
 
         <div class="col-md-4">
             <label for="ultimos4" class="form-label"><strong>Últimos 4 dígitos do cartão:</strong></label>
-            <input type="text" class="form-control" maxlength="4" name="ultimos4" id="ultimos4">
+            <input type="text" class="form-control" maxlength="4" name="ultimos4" id="ultimos4" value="{{ request.form.get('ultimos4', '') }}">
         </div>
 
         <div class="col-md-4">
             <label for="nome_loja" class="form-label"><strong>Nome da Loja / Plataforma:</strong></label>
-            <input type="text" class="form-control" name="nome_loja" id="nome_loja">
+            <input type="text" class="form-control" name="nome_loja" id="nome_loja" value="{{ request.form.get('nome_loja', '') }}">
         </div>
     </div>
 
     <hr>
     <h5>Categoria de Entrega</h5>
     <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" name="categoria_entrega" id="entrega_unico" value="unico" checked>
+        <input class="form-check-input" type="radio" name="categoria_entrega" id="entrega_unico" value="unico" {% if request.form.get('categoria_entrega', 'unico') == 'unico' %}checked{% endif %}>
         <label class="form-check-label" for="entrega_unico">Pacote Único</label>
     </div>
     <div class="form-check form-check-inline mb-3">
-        <input class="form-check-input" type="radio" name="categoria_entrega" id="entrega_multiplo" value="multiplo">
+        <input class="form-check-input" type="radio" name="categoria_entrega" id="entrega_multiplo" value="multiplo" {% if request.form.get('categoria_entrega') == 'multiplo' %}checked{% endif %}>
         <label class="form-check-label" for="entrega_multiplo">Múltiplos Pacotes</label>
-    </div>
-
-    <div id="bloco-unico" class="mb-4 border p-3 rounded bg-light">
-        <h5>Pacote Único</h5>
-        <div class="mb-3">
-            <label for="senha_recebimento_unico" class="form-label">Senha de Recebimento (opcional):</label>
-            <input type="text" class="form-control" name="senha_recebimento_unico" id="senha_recebimento_unico">
-        </div>
-        <div class="mb-3">
-            <label for="data_prevista_entrega_unico" class="form-label">Data Prevista de Entrega:</label>
-            <input type="date" class="form-control" name="data_prevista_entrega_unico" id="data_prevista_entrega_unico">
-        </div>
-        <div class="mb-3">
-            {% set nfe = session.get("nfe_temporaria_unico_" ~ solicitacao.id) %}
-            {% if nfe %}
-            <div class="alert alert-success">
-                Nota fiscal anexada. Chave: <code>{{ nfe.chave_acesso }}</code><br>
-                <a href="{{ nfe.arquivo_pdf }}" target="_blank">📄 Visualizar PDF</a>
-            </div>
-            {% else %}
-            <a href="{{ url_for('compras.anexar_nfe', tipo='unico', solicitacao_id=solicitacao.id) }}"
-                class="btn btn-outline-primary">Anexar Nota Fiscal</a>
-            {% endif %}
-        </div>
-    </div>
-
-    <div id="bloco-multiplo" class="mb-4 border p-3 rounded bg-light" style="display: none;">
-        <h5>Múltiplos Pacotes</h5>
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle text-center" id="tabela-pacotes">
-                <thead class="table-light">
-                    <tr>
-                        <th>#</th>
-                        <th>Qtd</th>
-                        <th>Senha</th>
-                        <th>Data Entrega</th>
-                        <th>Nota Fiscal</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Adicionado via JS -->
-                </tbody>
-            </table>
-        </div>
-        <button type="button" class="btn btn-outline-primary" id="btn-adicionar-pacote">+ Adicionar Pacote</button>
     </div>
 
     <div class="mb-4">
         <label for="informacoes_adicionais" class="form-label">Informações Adicionais (opcional):</label>
-        <textarea class="form-control" name="informacoes_adicionais" id="informacoes_adicionais" rows="3"></textarea>
+        <textarea class="form-control" name="informacoes_adicionais" id="informacoes_adicionais" rows="3">{{ request.form.get('informacoes_adicionais', '') }}</textarea>
     </div>
 
-    <button type="submit" class="btn btn-success">Salvar Compra</button>
+     <button type="submit" class="btn btn-success">Salvar Compra</button>
     <a href="{{ url_for('compras.lista_compras') }}" class="btn btn-secondary">← Voltar à lista</a>
 </form>
 
@@ -174,10 +96,11 @@
                 {% set notas = notas + [linha] %}
             {% endif %}
         {% endfor %}
-        {{ notas | join(',\n        ') | safe }}
+        {{ notas | join(',\n') | safe }}
     };
 </script>
 
 <!-- JS principal -->
 <script src="{{ url_for('static', filename='js/compras.js') }}"></script>
+
 {% endblock %}
